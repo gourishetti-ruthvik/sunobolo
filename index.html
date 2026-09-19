@@ -205,7 +205,7 @@ nav>button.mic:active{transform:scale(.94)}
   z-index:20;display:flex;align-items:flex-end}
 .card{background:var(--surf);border-top:1px solid var(--line2);width:100%;max-width:520px;
   margin:0 auto;border-radius:22px 22px 0 0;color:var(--ink);
-  padding:16px 18px calc(22px + env(safe-area-inset-bottom));max-height:90vh;overflow:auto;
+  padding:16px 18px calc(104px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto;
   animation:up .24s cubic-bezier(.22,1,.36,1)}
 @keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .grab{width:38px;height:4px;background:var(--line2);border-radius:2px;margin:0 auto 14px}
@@ -221,6 +221,25 @@ nav>button.mic:active{transform:scale(.94)}
   padding:10px 12px;margin-bottom:7px;font-size:13.5px}
 .h b{color:var(--ok);font-variant-numeric:tabular-nums}.h.neg b{color:var(--out)}
 .h .quote{margin:0;font-size:12px}
+/* Account menu: anchored under the header instead of a bottom sheet, which
+   collided with the fixed bottom nav and hid sign-out. */
+.menuwrap{position:fixed;inset:0;z-index:25}
+.menu{position:absolute;right:12px;width:min(286px,calc(100vw - 24px));
+  background:var(--surf);border:1px solid var(--line2);border-radius:16px;
+  box-shadow:var(--shadow);overflow:hidden;transform-origin:top right;
+  animation:pop .16s cubic-bezier(.22,1,.36,1)}
+@keyframes pop{from{opacity:0;transform:scale(.94) translateY(-8px)}to{opacity:1;transform:none}}
+.menu .mhead{padding:14px}
+.menu .mhead b{display:block;font-size:15.5px;line-height:1.3}
+.menu .mhead span{font-size:12px;color:var(--mut);word-break:break-all;display:block;margin-top:2px}
+.menu .mrow{display:flex;justify-content:space-between;gap:10px;padding:9px 14px;font-size:13.5px}
+.menu .mrow span{color:var(--mut)}
+.menu .mrow b{font-variant-numeric:tabular-nums}
+.menu .msep{height:1px;background:var(--line);margin:6px 0}
+.menu .mact{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  padding:13px 14px;font-size:14.5px;color:var(--ink);transition:background .15s}
+.menu .mact:hover,.menu .mact:active{background:var(--surf2)}
+.menu .mact.dz{color:var(--out)}
 .arow{display:flex;justify-content:space-between;padding:13px 2px;border-bottom:1px solid var(--line);font-size:15px}
 .arow span{color:var(--mut)}
 .danger{width:100%;margin-top:18px;padding:15px;border-radius:13px;
@@ -375,13 +394,13 @@ body.out #auth::before{content:"";position:fixed;left:50%;top:-180px;width:560px
 <body>
 <div class="wrap">
   <header>
-    <button class="idbtn" onclick="accountSheet()">
+    <button class="idbtn" onclick="accountMenu()">
       <span><span class="shop" id="shopName"></span><span class="sub" id="shopSub"></span></span>
       <span id="idChev"></span>
     </button>
     <div class="langs" id="langs"></div>
     <button class="theme-btn" onclick="toggleTheme()" aria-label="theme"></button>
-    <button class="acct-btn" id="acctBtn" onclick="accountSheet()"></button>
+    <button class="acct-btn" id="acctBtn" onclick="accountMenu()"></button>
   </header>
   <main id="main"></main>
 </div>
@@ -435,7 +454,7 @@ const T = {
       learned:n=>`अब से "${n}" याद रहेगा`,
       added:(q,u,n,t,b)=>`${q} ${u} ${n} जोड़ा गया। अब स्टॉक ${t} ${b} है।`,
       removed:(q,u,n,t,b)=>`${q} ${u} ${n} निकाला गया। अब स्टॉक ${t} ${b} है।`,
-      answer:(n,t,b)=>`${n} ${t} ${b} बचा है।`, lowMsg:c=>`${c} सामान कम हैं`, tagline:'दुकान की बात सुनकर स्टॉक',signIn:'दाखिल हों',newAcc:'नया खाता',phone:'मोबाइल नंबर',pin:'4 अंक का पिन',pin2:'पिन दोबारा',shopN:'दुकान का नाम',ownerN:'आपका नाम',enter:'अंदर जाएं',create:'खाता बनाएं',logout:'बाहर जाएं',pinBad:'दोनों पिन अलग हैं',welcome:n=>`नमस्ते, ${n}`,chooseLang:'भाषा चुनें',orLine:'या',ghint:'Google काम न करे तो ऊपर मोबाइल नंबर से दाखिल हों',heroA:'दुकान की बात',heroB:'सुनकर स्टॉक',heroSub:'बोलना भी नहीं पड़ता। फ़ोन काउंटर पर रखिए, दुकान की आम बातचीत से स्टॉक अपने आप लिखा जाएगा।',start:'शुरू करें',already:'पहले से खाता है',f1t:'काउंटर मोड',f1d:'ग्राहक से बातचीत सुनकर स्टॉक खुद पकड़ लेता है',f2t:'आपकी भाषा',f2d:'हिंदी, तेलुगु, अंग्रेज़ी — एक ही वाक्य में मिलाकर बोलिए',f3t:'बोरी, पेटी, दर्जन',f3d:'जिस यूनिट में खरीदते हैं उसी में बोलिए',f4t:'कुछ गलत नहीं लिखेगा',f4d:'पहले दिखाता है, आपके कहने पर ही स्टॉक बदलता है',f5t:'खुद सीखता है',f5d:'एक बार सही कर दीजिए, अगली बार खुद पहचान लेगा',f6t:'क्या मंगवाना है',f6d:'कम सामान की लिस्ट, बोरी-पेटी में',s1:'फ़ोन काउंटर पर रखिए',s2:'रोज़ की तरह बात कीजिए',s3:'एक टैप में सब सही',howT:'कैसे चलता है',featT:'क्या कर सकता है',account:'खाता',itemsWord:'सामान',signOutQ:'बाहर जाना है?',nameShop:'दुकान का नाम रखिए',save:'सेव करें', mismatch:'गिनती मिलती नहीं'},
+      answer:(n,t,b)=>`${n} ${t} ${b} बचा है।`, lowMsg:c=>`${c} सामान कम हैं`, tagline:'दुकान की बात सुनकर स्टॉक',signIn:'दाखिल हों',newAcc:'नया खाता',phone:'मोबाइल नंबर',pin:'4 अंक का पिन',pin2:'पिन दोबारा',shopN:'दुकान का नाम',ownerN:'आपका नाम',enter:'अंदर जाएं',create:'खाता बनाएं',logout:'बाहर जाएं',pinBad:'दोनों पिन अलग हैं',welcome:n=>`नमस्ते, ${n}`,chooseLang:'भाषा चुनें',orLine:'या',ghint:'Google काम न करे तो ऊपर मोबाइल नंबर से दाखिल हों',heroA:'दुकान की बात',heroB:'सुनकर स्टॉक',heroSub:'बोलना भी नहीं पड़ता। फ़ोन काउंटर पर रखिए, दुकान की आम बातचीत से स्टॉक अपने आप लिखा जाएगा।',start:'शुरू करें',already:'पहले से खाता है',f1t:'काउंटर मोड',f1d:'ग्राहक से बातचीत सुनकर स्टॉक खुद पकड़ लेता है',f2t:'आपकी भाषा',f2d:'हिंदी, तेलुगु, अंग्रेज़ी — एक ही वाक्य में मिलाकर बोलिए',f3t:'बोरी, पेटी, दर्जन',f3d:'जिस यूनिट में खरीदते हैं उसी में बोलिए',f4t:'कुछ गलत नहीं लिखेगा',f4d:'पहले दिखाता है, आपके कहने पर ही स्टॉक बदलता है',f5t:'खुद सीखता है',f5d:'एक बार सही कर दीजिए, अगली बार खुद पहचान लेगा',f6t:'क्या मंगवाना है',f6d:'कम सामान की लिस्ट, बोरी-पेटी में',s1:'फ़ोन काउंटर पर रखिए',s2:'रोज़ की तरह बात कीजिए',s3:'एक टैप में सब सही',howT:'कैसे चलता है',featT:'क्या कर सकता है',account:'खाता',itemsWord:'सामान',themeLbl:'रंग बदलें',signOutQ:'बाहर जाना है?',nameShop:'दुकान का नाम रखिए',save:'सेव करें', mismatch:'गिनती मिलती नहीं'},
   te:{stock:'నిల్వ',alerts:'హెచ్చరికలు',counter:'కౌంటర్ మోడ్',counterOff:'దుకాణం మాట వింటూ నిల్వ రాయండి',
       counterOn:'వింటున్నాం…',pending:'చూడండి',acceptAll:'అన్నీ సరే',search:'వస్తువు వెతకండి',
       low:'తక్కువ',out:'అయిపోయింది',ok:'సరే',yes:'సరే',no:'వద్దు',order:'ఆర్డర్',history:'గత నమోదులు',
@@ -445,7 +464,7 @@ const T = {
       learned:n=>`ఇప్పటి నుండి "${n}" గుర్తుంటుంది`,
       added:(q,u,n,t,b)=>`${q} ${u} ${n} చేర్చాము. ఇప్పుడు నిల్వ ${t} ${b}.`,
       removed:(q,u,n,t,b)=>`${q} ${u} ${n} తీసేశాము. ఇప్పుడు నిల్వ ${t} ${b}.`,
-      answer:(n,t,b)=>`${n} ${t} ${b} ఉంది.`, lowMsg:c=>`${c} వస్తువులు తక్కువ`, tagline:'దుకాణం మాట వింటూ నిల్వ',signIn:'లాగిన్',newAcc:'కొత్త ఖాతా',phone:'మొబైల్ నంబర్',pin:'4 అంకెల పిన్',pin2:'పిన్ మళ్ళీ',shopN:'దుకాణం పేరు',ownerN:'మీ పేరు',enter:'లోపలికి',create:'ఖాతా సృష్టించు',logout:'బయటకు',pinBad:'రెండు పిన్‌లు వేరు',welcome:n=>`నమస్తే, ${n}`,chooseLang:'భాష ఎంచుకోండి',orLine:'లేదా',ghint:'Google పనిచెయ్యకపోతే పైన మొబైల్ నంబర్‌తో లాగిన్ అవ్వండి',heroA:'దుకాణం మాట',heroB:'వింటూ నిల్వ',heroSub:'చెప్పనవసరం లేదు. ఫోన్ కౌంటర్‌పై పెట్టండి, మామూలు మాటల నుండే నిల్వ నమోదవుతుంది.',start:'ప్రారంభించండి',already:'ఖాతా ఉంది',f1t:'కౌంటర్ మోడ్',f1d:'కస్టమర్ మాటల నుండే నిల్వ పట్టుకుంటుంది',f2t:'మీ భాష',f2d:'తెలుగు, హిందీ, ఇంగ్లీష్ — కలిపి మాట్లాడండి',f3t:'బోరి, పెట్టె, డజను',f3d:'మీరు కొనే యూనిట్‌లోనే చెప్పండి',f4t:'తప్పు రాయదు',f4d:'ముందు చూపిస్తుంది, మీరు ఒప్పుకుంటేనే మారుతుంది',f5t:'నేర్చుకుంటుంది',f5d:'ఒకసారి సరిచేస్తే, తర్వాత తనే గుర్తిస్తుంది',f6t:'ఏమి ఆర్డర్',f6d:'తక్కువ ఉన్నవి, బోరి-పెట్టెలలో',s1:'ఫోన్ కౌంటర్‌పై పెట్టండి',s2:'రోజులాగే మాట్లాడండి',s3:'ఒక్క నొక్కుతో సరి',howT:'ఎలా పనిచేస్తుంది',featT:'ఏమి చేయగలదు',account:'ఖాతా',itemsWord:'వస్తువులు',signOutQ:'బయటకు వెళ్లాలా?',nameShop:'దుకాణానికి పేరు పెట్టండి',save:'సేవ్', mismatch:'లెక్క సరిపోలేదు'},
+      answer:(n,t,b)=>`${n} ${t} ${b} ఉంది.`, lowMsg:c=>`${c} వస్తువులు తక్కువ`, tagline:'దుకాణం మాట వింటూ నిల్వ',signIn:'లాగిన్',newAcc:'కొత్త ఖాతా',phone:'మొబైల్ నంబర్',pin:'4 అంకెల పిన్',pin2:'పిన్ మళ్ళీ',shopN:'దుకాణం పేరు',ownerN:'మీ పేరు',enter:'లోపలికి',create:'ఖాతా సృష్టించు',logout:'బయటకు',pinBad:'రెండు పిన్‌లు వేరు',welcome:n=>`నమస్తే, ${n}`,chooseLang:'భాష ఎంచుకోండి',orLine:'లేదా',ghint:'Google పనిచెయ్యకపోతే పైన మొబైల్ నంబర్‌తో లాగిన్ అవ్వండి',heroA:'దుకాణం మాట',heroB:'వింటూ నిల్వ',heroSub:'చెప్పనవసరం లేదు. ఫోన్ కౌంటర్‌పై పెట్టండి, మామూలు మాటల నుండే నిల్వ నమోదవుతుంది.',start:'ప్రారంభించండి',already:'ఖాతా ఉంది',f1t:'కౌంటర్ మోడ్',f1d:'కస్టమర్ మాటల నుండే నిల్వ పట్టుకుంటుంది',f2t:'మీ భాష',f2d:'తెలుగు, హిందీ, ఇంగ్లీష్ — కలిపి మాట్లాడండి',f3t:'బోరి, పెట్టె, డజను',f3d:'మీరు కొనే యూనిట్‌లోనే చెప్పండి',f4t:'తప్పు రాయదు',f4d:'ముందు చూపిస్తుంది, మీరు ఒప్పుకుంటేనే మారుతుంది',f5t:'నేర్చుకుంటుంది',f5d:'ఒకసారి సరిచేస్తే, తర్వాత తనే గుర్తిస్తుంది',f6t:'ఏమి ఆర్డర్',f6d:'తక్కువ ఉన్నవి, బోరి-పెట్టెలలో',s1:'ఫోన్ కౌంటర్‌పై పెట్టండి',s2:'రోజులాగే మాట్లాడండి',s3:'ఒక్క నొక్కుతో సరి',howT:'ఎలా పనిచేస్తుంది',featT:'ఏమి చేయగలదు',account:'ఖాతా',itemsWord:'వస్తువులు',themeLbl:'రంగు మార్చు',signOutQ:'బయటకు వెళ్లాలా?',nameShop:'దుకాణానికి పేరు పెట్టండి',save:'సేవ్', mismatch:'లెక్క సరిపోలేదు'},
   en:{stock:'Stock',alerts:'Alerts',counter:'Counter Mode',counterOff:'Log stock by listening to the shop',
       counterOn:'Listening…',pending:'Please check',acceptAll:'All correct',search:'Find item',
       low:'Low',out:'Out',ok:'OK',yes:'Correct',no:'No',order:'Order',history:'Recent entries',
@@ -455,7 +474,7 @@ const T = {
       learned:n=>`Will remember "${n}" from now on`,
       added:(q,u,n,t,b)=>`Added ${q} ${u} ${n}. Stock is now ${t} ${b}.`,
       removed:(q,u,n,t,b)=>`Removed ${q} ${u} ${n}. Stock is now ${t} ${b}.`,
-      answer:(n,t,b)=>`You have ${t} ${b} of ${n}.`, lowMsg:c=>`${c} items running low`, tagline:'Stock, by listening to your shop',signIn:'Sign in',newAcc:'New account',phone:'Mobile number',pin:'4-digit PIN',pin2:'PIN again',shopN:'Shop name',ownerN:'Your name',enter:'Enter',create:'Create account',logout:'Sign out',pinBad:'The two PINs do not match',welcome:n=>`Hello, ${n}`,chooseLang:'Choose language',orLine:'or',ghint:'If Google does not open, allow popups - or use the phone number above',heroA:'Your shop talks.',heroB:'It listens.',heroSub:'No commands to learn. Leave the phone on the counter and ordinary conversation becomes your stock book.',start:'Get started',already:'I have an account',f1t:'Counter Mode',f1d:'Picks up stock from what you and the customer already say',f2t:'Your language',f2d:'Hindi, Telugu, English — mixed in one sentence',f3t:'Bori, peti, dozen',f3d:'Speak in the units you actually buy in',f4t:'Never writes a guess',f4d:'It proposes; stock changes only when you agree',f5t:'Learns as you go',f5d:'Correct it once and it knows that word forever',f6t:'What to order',f6d:'Low stock, counted in sacks and cartons',s1:'Put the phone on the counter',s2:'Talk to customers as usual',s3:'One tap to approve',howT:'How it works',featT:'What it does',account:'Account',itemsWord:'items',signOutQ:'Sign out?',nameShop:'Name your shop',save:'Save', mismatch:'Count disagrees'},
+      answer:(n,t,b)=>`You have ${t} ${b} of ${n}.`, lowMsg:c=>`${c} items running low`, tagline:'Stock, by listening to your shop',signIn:'Sign in',newAcc:'New account',phone:'Mobile number',pin:'4-digit PIN',pin2:'PIN again',shopN:'Shop name',ownerN:'Your name',enter:'Enter',create:'Create account',logout:'Sign out',pinBad:'The two PINs do not match',welcome:n=>`Hello, ${n}`,chooseLang:'Choose language',orLine:'or',ghint:'If Google does not open, allow popups - or use the phone number above',heroA:'Your shop talks.',heroB:'It listens.',heroSub:'No commands to learn. Leave the phone on the counter and ordinary conversation becomes your stock book.',start:'Get started',already:'I have an account',f1t:'Counter Mode',f1d:'Picks up stock from what you and the customer already say',f2t:'Your language',f2d:'Hindi, Telugu, English — mixed in one sentence',f3t:'Bori, peti, dozen',f3d:'Speak in the units you actually buy in',f4t:'Never writes a guess',f4d:'It proposes; stock changes only when you agree',f5t:'Learns as you go',f5d:'Correct it once and it knows that word forever',f6t:'What to order',f6d:'Low stock, counted in sacks and cartons',s1:'Put the phone on the counter',s2:'Talk to customers as usual',s3:'One tap to approve',howT:'How it works',featT:'What it does',account:'Account',itemsWord:'items',themeLbl:'Switch theme',signOutQ:'Sign out?',nameShop:'Name your shop',save:'Save', mismatch:'Count disagrees'},
 };
 const LOCALE = {hi:'hi-IN', te:'te-IN', en:'en-IN'};
 
@@ -1011,24 +1030,29 @@ function showLanding(){
 }
 
 // ─── account sheet: sign-out lives here, nowhere near the language toggle ───
-async function accountSheet(){
-  sheet(`<h2 style="margin:4px 0 14px;font-size:21px">${t().account}</h2>
-    <div class="arow"><span>${t().shopN}</span><b>${shopName}</b></div>
-    <div class="arow"><span>${t().ownerN}</span><b>${ownerName}</b></div>
-    <div id="acctMore"></div>
-    <button class="btn ghost wide" onclick="renameFromAccount()">${t().nameShop}</button>
-    <button class="danger" onclick="confirmSignOut()">${icon('logout',18)} ${t().logout}</button>`);
-  // the rest comes from the server, so the sheet opens instantly and fills in
-  try{
-    const me = await api('/me');
-    const box = document.getElementById('acctMore');
-    if(!box) return;
-    box.innerHTML =
-      (me.phone ? `<div class="arow"><span>${t().phone}</span><b>${me.phone}</b></div>` : '')
-    + (me.email ? `<div class="arow"><span>Google</span><b>${me.email}</b></div>` : '')
-    + `<div class="arow"><span>${t().stock}</span><b>${me.items} ${t().itemsWord}</b></div>`
-    + `<div class="arow"><span>${t().history}</span><b>${me.entries}</b></div>`;
-  }catch{}
+function accountMenu(){
+  // anchored to the real header, whose height changes with the shop name
+  const top = Math.round(document.querySelector('header').getBoundingClientRect().bottom) + 6;
+  document.getElementById('sheet').innerHTML = `
+    <div class="menuwrap" onclick="if(event.target===this)closeSheet()">
+      <div class="menu" style="top:${top}px">
+        <div class="mhead"><b>${shopName}</b><span id="mWho">${ownerName}</span></div>
+        <div id="mStats"></div>
+        <div class="msep"></div>
+        <button class="mact" onclick="renameFromAccount()">${icon('pencil',17)} ${t().nameShop}</button>
+        <button class="mact" onclick="toggleTheme();accountMenu()">${icon(theme==='dark'?'sun':'moon',17)} ${t().themeLbl}</button>
+        <button class="mact dz" onclick="confirmSignOut()">${icon('logout',17)} ${t().logout}</button>
+      </div></div>`;
+  // details arrive from the server, so the menu opens instantly and fills in
+  api('/me').then(me => {
+    const who = document.getElementById('mWho');
+    if(who) who.textContent = me.email || me.phone || ownerName;
+    const box = document.getElementById('mStats');
+    if(box) box.innerHTML =
+        `<div class="mrow"><span>${t().ownerN}</span><b>${me.owner_name}</b></div>`
+      + `<div class="mrow"><span>${t().stock}</span><b>${me.items} ${t().itemsWord}</b></div>`
+      + `<div class="mrow"><span>${t().history}</span><b>${me.entries}</b></div>`;
+  }).catch(() => {});
 }
 
 const renameFromAccount = () => { closeSheet(); askShopName(); };
