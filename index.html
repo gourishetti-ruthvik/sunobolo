@@ -50,6 +50,36 @@ input.search{width:100%;padding:13px 15px;border-radius:var(--r);border:1px soli
 .pill.low{background:#ffedd5;color:#9a3412}.pill.out{background:#fee2e2;color:#991b1b}
 .sugg{text-align:right;font-size:12px;color:var(--mut)}.sugg b{display:block;font-size:18px;color:var(--brand)}
 
+/* ── sign in / register ─────────────────────────────────────────────── */
+body.out .wrap, body.out nav{display:none}
+#auth{display:none}
+body.out #auth{display:block;position:fixed;inset:0;overflow:auto;z-index:40;
+  background:linear-gradient(165deg,#0f766e 0%,#0b5b55 48%,#083f3b 100%)}
+.aw{max-width:420px;margin:0 auto;padding:36px 22px calc(28px + env(safe-area-inset-bottom))}
+.brand{text-align:center;color:#fff;margin-bottom:26px}
+.brand h1{margin:14px 0 4px;font-size:31px;letter-spacing:-.6px;font-weight:700}
+.brand p{margin:0;font-size:14px;opacity:.72}
+.apick{display:flex;gap:4px;background:rgba(255,255,255,.14);padding:4px;border-radius:99px;margin-bottom:18px}
+.apick button{flex:1;padding:11px;border-radius:99px;color:#fff;font-size:14px;opacity:.75}
+.apick button.on{background:#fff;color:var(--brand);font-weight:700;opacity:1}
+.acard{background:#fff;border-radius:22px;padding:22px 20px;box-shadow:0 18px 44px rgba(0,0,0,.24)}
+.fld{margin-bottom:14px}
+.fld label{display:block;font-size:13px;font-weight:600;color:var(--mut);margin-bottom:6px}
+.fld input{width:100%;padding:15px;border-radius:14px;border:1.5px solid var(--line);
+  font-size:17px;outline:none;background:#fbfcfb}
+.fld input:focus{border-color:var(--brand);background:#fff}
+.fld input.pin{letter-spacing:.5em;text-align:center;font-size:22px}
+.err{background:#fee2e2;color:#991b1b;padding:11px 14px;border-radius:12px;
+  font-size:14px;margin-bottom:14px;font-weight:600}
+.lrow{display:flex;gap:6px;margin-bottom:16px}
+.lrow button{flex:1;padding:12px 4px;border-radius:12px;border:1.5px solid var(--line);
+  background:#fff;font-size:14px}
+.lrow button.on{background:var(--brand);color:#fff;border-color:var(--brand);font-weight:700}
+.big-btn{width:100%;padding:17px;border-radius:14px;background:var(--brand);color:#fff;
+  font-size:17px;font-weight:700}
+.big-btn:disabled{opacity:.45}
+.who{font-size:11px;opacity:.72;display:block}
+
 /* pending tray: two columns, goods in on the left, goods out on the right */
 .tray{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;align-items:start}
 .col h4{margin:0 0 7px;font-size:12px;font-weight:700;text-align:center;padding:7px 4px;border-radius:99px}
@@ -118,7 +148,7 @@ nav>button.mic{flex:0 0 64px;width:64px;height:64px;border-radius:50%;background
 <body>
 <div class="wrap">
   <header>
-    <div><div class="shop" id="shopName">रमेश किराना स्टोर</div><div class="sub" id="shopSub"></div></div>
+    <div><div class="shop" id="shopName"></div><div class="sub" id="shopSub"></div></div>
     <div class="langs" id="langs"></div>
   </header>
   <main id="main"></main>
@@ -128,6 +158,7 @@ nav>button.mic{flex:0 0 64px;width:64px;height:64px;border-radius:50%;background
   <button class="mic" onclick="micEntry()">🎤</button>
   <button id="tabAlerts" onclick="go('alerts')"><span style="font-size:20px">🔔</span><span id="lblAlerts"></span><i class="dot" id="alertDot" hidden></i></button>
 </nav>
+<div id="auth"></div>
 <div id="sheet"></div>
 
 <script>
@@ -142,7 +173,7 @@ const T = {
       learned:n=>`अब से "${n}" याद रहेगा`,
       added:(q,u,n,t,b)=>`${q} ${u} ${n} जोड़ा गया। अब स्टॉक ${t} ${b} है।`,
       removed:(q,u,n,t,b)=>`${q} ${u} ${n} निकाला गया। अब स्टॉक ${t} ${b} है।`,
-      answer:(n,t,b)=>`${n} ${t} ${b} बचा है।`, lowMsg:c=>`${c} सामान कम हैं`, mismatch:'गिनती मिलती नहीं'},
+      answer:(n,t,b)=>`${n} ${t} ${b} बचा है।`, lowMsg:c=>`${c} सामान कम हैं`, tagline:'दुकान की बात सुनकर स्टॉक',signIn:'दाखिल हों',newAcc:'नया खाता',phone:'मोबाइल नंबर',pin:'4 अंक का पिन',pin2:'पिन दोबारा',shopN:'दुकान का नाम',ownerN:'आपका नाम',enter:'अंदर जाएं',create:'खाता बनाएं',logout:'बाहर जाएं',pinBad:'दोनों पिन अलग हैं',welcome:n=>`नमस्ते, ${n}`,chooseLang:'भाषा चुनें', mismatch:'गिनती मिलती नहीं'},
   te:{stock:'నిల్వ',alerts:'హెచ్చరికలు',counter:'కౌంటర్ మోడ్',counterOff:'దుకాణం మాట వింటూ నిల్వ రాయండి',
       counterOn:'వింటున్నాం…',pending:'చూడండి',acceptAll:'అన్నీ సరే',search:'వస్తువు వెతకండి',
       low:'తక్కువ',out:'అయిపోయింది',ok:'సరే',yes:'సరే',no:'వద్దు',order:'ఆర్డర్',history:'గత నమోదులు',
@@ -152,7 +183,7 @@ const T = {
       learned:n=>`ఇప్పటి నుండి "${n}" గుర్తుంటుంది`,
       added:(q,u,n,t,b)=>`${q} ${u} ${n} చేర్చాము. ఇప్పుడు నిల్వ ${t} ${b}.`,
       removed:(q,u,n,t,b)=>`${q} ${u} ${n} తీసేశాము. ఇప్పుడు నిల్వ ${t} ${b}.`,
-      answer:(n,t,b)=>`${n} ${t} ${b} ఉంది.`, lowMsg:c=>`${c} వస్తువులు తక్కువ`, mismatch:'లెక్క సరిపోలేదు'},
+      answer:(n,t,b)=>`${n} ${t} ${b} ఉంది.`, lowMsg:c=>`${c} వస్తువులు తక్కువ`, tagline:'దుకాణం మాట వింటూ నిల్వ',signIn:'లాగిన్',newAcc:'కొత్త ఖాతా',phone:'మొబైల్ నంబర్',pin:'4 అంకెల పిన్',pin2:'పిన్ మళ్ళీ',shopN:'దుకాణం పేరు',ownerN:'మీ పేరు',enter:'లోపలికి',create:'ఖాతా సృష్టించు',logout:'బయటకు',pinBad:'రెండు పిన్‌లు వేరు',welcome:n=>`నమస్తే, ${n}`,chooseLang:'భాష ఎంచుకోండి', mismatch:'లెక్క సరిపోలేదు'},
   en:{stock:'Stock',alerts:'Alerts',counter:'Counter Mode',counterOff:'Log stock by listening to the shop',
       counterOn:'Listening…',pending:'Please check',acceptAll:'All correct',search:'Find item',
       low:'Low',out:'Out',ok:'OK',yes:'Correct',no:'No',order:'Order',history:'Recent entries',
@@ -162,7 +193,7 @@ const T = {
       learned:n=>`Will remember "${n}" from now on`,
       added:(q,u,n,t,b)=>`Added ${q} ${u} ${n}. Stock is now ${t} ${b}.`,
       removed:(q,u,n,t,b)=>`Removed ${q} ${u} ${n}. Stock is now ${t} ${b}.`,
-      answer:(n,t,b)=>`You have ${t} ${b} of ${n}.`, lowMsg:c=>`${c} items running low`, mismatch:'Count disagrees'},
+      answer:(n,t,b)=>`You have ${t} ${b} of ${n}.`, lowMsg:c=>`${c} items running low`, tagline:'Stock, by listening to your shop',signIn:'Sign in',newAcc:'New account',phone:'Mobile number',pin:'4-digit PIN',pin2:'PIN again',shopN:'Shop name',ownerN:'Your name',enter:'Enter',create:'Create account',logout:'Sign out',pinBad:'The two PINs do not match',welcome:n=>`Hello, ${n}`,chooseLang:'Choose language', mismatch:'Count disagrees'},
 };
 const LOCALE = {hi:'hi-IN', te:'te-IN', en:'en-IN'};
 
@@ -170,8 +201,26 @@ const LOCALE = {hi:'hi-IN', te:'te-IN', en:'en-IN'};
 let lang='hi', tab='stock', items=[], alerts=[], props=[], counterOn=false, nextId=1;
 const t = () => T[lang];
 const nameOf = i => lang==='hi' ? i.name_hi : lang==='te' ? i.name_te : i.name;
-const api = (p,body) => fetch(p, body ? {method:'POST',headers:{'Content-Type':'application/json'},
-                                         body:JSON.stringify(body)} : undefined).then(r=>r.json());
+let token = localStorage.getItem('sb_token') || '';
+let shopName = localStorage.getItem('sb_shop') || '';
+let ownerName = localStorage.getItem('sb_owner') || '';
+
+async function api(path, body){
+  const r = await fetch(path, {
+    method: body ? 'POST' : 'GET',
+    headers: {...(body ? {'Content-Type':'application/json'} : {}),
+              ...(token ? {Authorization: 'Bearer ' + token} : {})},
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  // A rejected token means sign in again - not an error worth showing. But a
+  // 401 from /login is a WRONG PIN, and telling that user "signed out" instead
+  // of "wrong PIN" is nonsense, so those two are left to report themselves.
+  const isAuthCall = path === '/login' || path === '/register';
+  if(r.status === 401 && !isAuthCall){ signOut(); throw new Error('signed out'); }
+  const data = await r.json().catch(() => ({}));
+  if(!r.ok) throw new Error(data.detail || 'something went wrong');
+  return data;
+}
 
 // ─── speech ───
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -276,14 +325,17 @@ function edit(id, patch){ Object.assign(props.find(p=>p.id===id), patch); render
 async function load(){ [items, alerts] = await Promise.all([api('/stock'), api('/alerts')]); render(); }
 
 function render(){
-  document.getElementById('shopSub').textContent = `${items.length} ${t().stock}`;
+  document.getElementById('shopName').textContent = shopName || 'SunoBolo';
+  document.getElementById('shopSub').innerHTML =
+    `${items.length} ${t().stock} <span class="who">${ownerName}</span>`;
   document.getElementById('lblStock').textContent = t().stock;
   document.getElementById('lblAlerts').textContent = t().alerts;
   document.getElementById('tabStock').className = tab==='stock' ? 'on':'';
   document.getElementById('tabAlerts').className = tab==='alerts' ? 'on':'';
   const d = document.getElementById('alertDot'); d.hidden = !alerts.length; d.textContent = alerts.length;
   document.getElementById('langs').innerHTML = ['hi','te','en'].map(l =>
-    `<button class="${l===lang?'on':''}" onclick="setLang('${l}')">${({hi:'हिंदी',te:'తెలుగు',en:'EN'})[l]}</button>`).join('');
+    `<button class="${l===lang?'on':''}" onclick="setLang('${l}')">${({hi:'हिंदी',te:'తెలుగు',en:'EN'})[l]}</button>`).join('')
+    + `<button onclick="signOut()" title="${t().logout}">⏻</button>`;
 
   let h = `<div class="counter ${counterOn?'on':''}" onclick="toggleCounter()">
       ${counterOn ? '<span class="ear"></span>' : '<span style="font-size:22px">👂</span>'}
@@ -456,7 +508,86 @@ function setLang(l){
   render();
 }
 
-load();
+// ─── sign in / register ───────────────────────────────────────────────────
+let authMode = 'in';        // 'in' = sign in, 'up' = create account
+let authErr = '';
+
+function signOut(){
+  token = shopName = ownerName = '';
+  ['sb_token','sb_shop','sb_owner'].forEach(k => localStorage.removeItem(k));
+  if(counterOn) toggleCounter();   // never keep listening once nobody is signed in
+  props = []; items = []; alerts = [];
+  authMode = 'in'; authErr = '';   // signing out lands on sign-in, not on register
+  document.body.classList.add('out');
+  renderAuth();
+}
+
+function signedIn(r){
+  token = r.token; shopName = r.shop_name; ownerName = r.owner_name;
+  localStorage.setItem('sb_token', token);
+  localStorage.setItem('sb_shop', shopName);
+  localStorage.setItem('sb_owner', ownerName);
+  if(r.lang) lang = r.lang;
+  authErr = '';
+  document.body.classList.remove('out');
+  document.getElementById('auth').innerHTML = '';
+  load();
+  toast(t().welcome(ownerName));
+}
+
+const MARK = `<svg viewBox="0 0 64 64" width="62" height="62" aria-hidden="true">
+  <circle cx="32" cy="32" r="30" fill="rgba(255,255,255,.12)"/>
+  <circle cx="23" cy="32" r="6" fill="#fff"/>
+  <path d="M33 21a15 15 0 0 1 0 22" stroke="#fff" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+  <path d="M42 14a24 24 0 0 1 0 36" stroke="#5eead4" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+</svg>`;
+
+function renderAuth(){
+  const up = authMode === 'up';
+  const f = (id, label, extra='') =>
+    `<div class="fld"><label for="${id}">${label}</label><input id="${id}" ${extra}></div>`;
+  document.getElementById('auth').innerHTML = `<div class="aw">
+    <div class="brand">${MARK}<h1>SunoBolo</h1><p>${t().tagline}</p></div>
+    <div class="apick">
+      <button class="${up?'':'on'}" onclick="setAuthMode('in')">${t().signIn}</button>
+      <button class="${up?'on':''}" onclick="setAuthMode('up')">${t().newAcc}</button>
+    </div>
+    <div class="acard">
+      ${authErr ? `<div class="err">${authErr}</div>` : ''}
+      ${up ? f('f_shop', t().shopN, 'autocomplete="organization"') : ''}
+      ${up ? f('f_owner', t().ownerN, 'autocomplete="name"') : ''}
+      ${f('f_phone', t().phone, 'type="tel" inputmode="numeric" maxlength="10" autocomplete="tel"')}
+      ${f('f_pin', t().pin, 'type="password" inputmode="numeric" maxlength="4" class="pin"')}
+      ${up ? f('f_pin2', t().pin2, 'type="password" inputmode="numeric" maxlength="4" class="pin"') : ''}
+      ${up ? `<label style="font-size:13px;font-weight:600;color:var(--mut)">${t().chooseLang}</label>
+        <div class="lrow">${['hi','te','en'].map(l =>
+          `<button class="${l===lang?'on':''}" onclick="setLang('${l}');renderAuth()">${
+            ({hi:'हिंदी',te:'తెలుగు',en:'English'})[l]}</button>`).join('')}</div>` : ''}
+      <button class="big-btn" onclick="submitAuth()">${up ? t().create : t().enter}</button>
+    </div></div>`;
+}
+
+const setAuthMode = m => { authMode = m; authErr = ''; renderAuth(); };
+const val = id => (document.getElementById(id)?.value || '').trim();
+
+async function submitAuth(){
+  const up = authMode === 'up';
+  if(up && val('f_pin') !== val('f_pin2')){ authErr = t().pinBad; return renderAuth(); }
+  try{
+    const r = up
+      ? await api('/register', {shop_name: val('f_shop'), owner_name: val('f_owner'),
+                                phone: val('f_phone'), pin: val('f_pin'), lang})
+      : await api('/login', {phone: val('f_phone'), pin: val('f_pin')});
+    signedIn(r);
+  }catch(e){
+    authErr = e.message;
+    renderAuth();
+  }
+}
+
+// ─── start ───
+if(token){ document.body.classList.remove('out'); load(); }
+else { document.body.classList.add('out'); renderAuth(); }
 </script>
 </body>
 </html>

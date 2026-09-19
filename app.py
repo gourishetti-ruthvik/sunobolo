@@ -1,27 +1,51 @@
 """
 SunoBolo backend.  Run:  uvicorn app:app --reload
 
-Two tables, six endpoints, no ORM.
+Three tables, no ORM.
 
-The one design decision worth remembering: we never store a stock number.
-Every change is a new row in `txns`, and current stock is SUM(qty_base).
-That gives us history, undo and an audit trail for free, and means a wrong
-entry can be corrected instead of having already overwritten the truth.
+Two design decisions worth remembering:
+
+1. We never store a stock number. Every change is a new row in `txns`, and
+   current stock is SUM(qty_base). That gives history, undo and an audit trail
+   for free, and a wrong entry can be corrected rather than having already
+   overwritten the truth.
+
+2. Every row belongs to a shop. One deployment serves many shops, and a shop
+   can only ever see its own rows - the shop id comes from a signed token, not
+   from anything the caller sends us.
 """
 
+import hashlib
+import hmac
 import json
 import os
+import secrets
 import sqlite3
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.responses import FileResponse, PlainTextResponse
 
 import parse as nlu
 
 DB = os.environ.get("DB_PATH", "sunobolo.db")
+# ponytail: a process-lifetime secret is fine for one free-tier instance - a
+# restart just signs everyone out. Set SECRET_KEY in the environment to keep
+# sessions across restarts, and before ever running more than one instance.
+SECRET = os.environ.get("SECRET_KEY") or secrets.token_hex(16)
 
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS shops (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  shop_name  TEXT NOT NULL,
+  owner_name TEXT NOT NULL,
+  phone      TEXT NOT NULL UNIQUE,     -- the login id: digits, nothing to spell
+  pin_hash   TEXT NOT NULL,            -- salt$pbkdf2, never the PIN itself
+  lang       TEXT DEFAULT 'hi',
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS items (
-  id            INTEGER PRIMARY KEY,
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  shop_id       INTEGER NOT NULL REFERENCES shops(id),
   name          TEXT NOT NULL,
   name_hi       TEXT,
   name_te       TEXT,
@@ -35,6 +59,7 @@ CREATE TABLE IF NOT EXISTS items (
 
 CREATE TABLE IF NOT EXISTS txns (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  shop_id    INTEGER NOT NULL REFERENCES shops(id),
   item_id    INTEGER NOT NULL REFERENCES items(id),
   qty        REAL NOT NULL,           -- 2          (what was said)
   unit       TEXT NOT NULL,           -- 'bori'     (what was said)
@@ -45,9 +70,13 @@ CREATE TABLE IF NOT EXISTS txns (
   source     TEXT,                    -- counter | command | manual | undo
   created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS idx_items_shop ON items(shop_id);
+CREATE INDEX IF NOT EXISTS idx_txns_shop  ON txns(shop_id);
 """
 
 # name, hi, te, base, packs, reorder, target, price, aliases, opening stock
+# Every new shop starts with this catalogue so the app is useful from minute one.
 SEED = [
     ("Rice", "चावल", "బియ్యం", "kg", {"bori": 50, "bag": 25}, 50, 150, 58,
      ["rice", "chawal", "chaawal", "chowal", "चावल", "biyyam", "బియ్యం", "basmati"], 42),
@@ -76,20 +105,13 @@ def db():
 
 def setup():
     con = db()
+    # The single-shop version had no shop_id. Nothing in it was real data, so
+    # starting the multi-shop schema clean is safer than guessing an owner.
+    if con.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='items'").fetchone():
+        cols = [c["name"] for c in con.execute("PRAGMA table_info(items)")]
+        if "shop_id" not in cols:
+            con.executescript("DROP TABLE IF EXISTS txns; DROP TABLE IF EXISTS items;")
     con.executescript(SCHEMA)
-    if not con.execute("SELECT 1 FROM items LIMIT 1").fetchone():
-        for n, hi, te, bu, p, r, t, pr, a, opening in SEED:
-            cur = con.execute(
-                "INSERT INTO items (name,name_hi,name_te,base_unit,packs,reorder_level,"
-                "target_level,last_price,aliases) VALUES (?,?,?,?,?,?,?,?,?)",
-                (n, hi, te, bu, json.dumps(p), r, t, pr, json.dumps(a)))
-            # Opening stock is itself a ledger row - there is no other way to
-            # have stock, which is what keeps every number traceable.
-            if opening:
-                con.execute(
-                    "INSERT INTO txns (item_id,qty,unit,qty_base,transcript,source)"
-                    " VALUES (?,?,?,?,'opening stock','seed')",
-                    (cur.lastrowid, opening, bu, opening))
     con.commit()
     con.close()
 
@@ -98,14 +120,126 @@ app = FastAPI(title="SunoBolo")
 setup()
 
 
-def stock_rows():
-    """Every item with its current stock. This is the only place stock is computed."""
+# ── accounts and sessions ────────────────────────────────────────────────────
+
+def hash_pin(pin, salt=None):
+    """PBKDF2, not a bare hash. A 4-digit PIN has only 10,000 possibilities, so
+    the work factor is the only thing making a stolen database hard to use."""
+    salt = salt or secrets.token_hex(8)
+    digest = hashlib.pbkdf2_hmac("sha256", pin.encode(), salt.encode(), 120_000)
+    return f"{salt}${digest.hex()}"
+
+
+def check_pin(pin, stored):
+    try:
+        salt, _ = stored.split("$", 1)
+    except ValueError:
+        return False
+    return hmac.compare_digest(stored, hash_pin(pin, salt))
+
+
+def make_token(shop_id):
+    """Signed and stateless - no sessions table to keep in step with anything."""
+    sig = hmac.new(SECRET.encode(), str(shop_id).encode(), hashlib.sha256).hexdigest()
+    return f"{shop_id}.{sig}"
+
+
+def current_shop(authorization: str = Header(None)) -> int:
+    """The shop id comes from the signature, never from the request body -
+    otherwise any caller could read any shop by changing a number."""
+    token = (authorization or "").replace("Bearer ", "").strip()
+    try:
+        shop_id, sig = token.split(".", 1)
+        expected = hmac.new(SECRET.encode(), shop_id.encode(), hashlib.sha256).hexdigest()
+        if hmac.compare_digest(sig, expected):
+            return int(shop_id)
+    except (ValueError, AttributeError):
+        pass
+    raise HTTPException(401, "please sign in again")
+
+
+def valid_pin(pin):
+    return isinstance(pin, str) and pin.isdigit() and len(pin) == 4
+
+
+@app.post("/register")
+def register(body: dict):
+    shop_name = (body.get("shop_name") or "").strip()
+    owner = (body.get("owner_name") or "").strip()
+    phone = "".join(ch for ch in str(body.get("phone") or "") if ch.isdigit())
+    pin = str(body.get("pin") or "")
+
+    if not shop_name or not owner:
+        raise HTTPException(400, "shop name and owner name are required")
+    if len(phone) != 10:
+        raise HTTPException(400, "phone must be 10 digits")
+    if not valid_pin(pin):
+        raise HTTPException(400, "PIN must be 4 digits")
+
+    con = db()
+    if con.execute("SELECT 1 FROM shops WHERE phone=?", (phone,)).fetchone():
+        con.close()
+        raise HTTPException(409, "this phone number is already registered")
+
+    cur = con.execute(
+        "INSERT INTO shops (shop_name,owner_name,phone,pin_hash,lang) VALUES (?,?,?,?,?)",
+        (shop_name, owner, phone, hash_pin(pin), body.get("lang") or "hi"))
+    shop_id = cur.lastrowid
+
+    for n, hi, te, bu, p, r, t, pr, a, opening in SEED:
+        it = con.execute(
+            "INSERT INTO items (shop_id,name,name_hi,name_te,base_unit,packs,"
+            "reorder_level,target_level,last_price,aliases) VALUES (?,?,?,?,?,?,?,?,?,?)",
+            (shop_id, n, hi, te, bu, json.dumps(p), r, t, pr, json.dumps(a)))
+        # Opening stock is itself a ledger row - there is no other way to have
+        # stock, which is what keeps every number traceable.
+        if opening:
+            con.execute(
+                "INSERT INTO txns (shop_id,item_id,qty,unit,qty_base,transcript,source)"
+                " VALUES (?,?,?,?,?,'opening stock','seed')",
+                (shop_id, it.lastrowid, opening, bu, opening))
+    con.commit()
+    con.close()
+    return {"token": make_token(shop_id), "shop_name": shop_name,
+            "owner_name": owner, "lang": body.get("lang") or "hi"}
+
+
+@app.post("/login")
+def login(body: dict):
+    phone = "".join(ch for ch in str(body.get("phone") or "") if ch.isdigit())
+    pin = str(body.get("pin") or "")
+    con = db()
+    row = con.execute("SELECT * FROM shops WHERE phone=?", (phone,)).fetchone()
+    con.close()
+    # One message for both failures - never reveal which numbers are registered.
+    if not row or not check_pin(pin, row["pin_hash"]):
+        raise HTTPException(401, "wrong phone number or PIN")
+    return {"token": make_token(row["id"]), "shop_name": row["shop_name"],
+            "owner_name": row["owner_name"], "lang": row["lang"]}
+
+
+@app.get("/me")
+def me(shop: int = Depends(current_shop)):
+    con = db()
+    row = con.execute("SELECT shop_name,owner_name,phone,lang FROM shops WHERE id=?",
+                      (shop,)).fetchone()
+    con.close()
+    if not row:
+        raise HTTPException(401, "please sign in again")
+    return dict(row)
+
+
+# ── stock ────────────────────────────────────────────────────────────────────
+
+def stock_rows(shop):
+    """Every item with its current stock. The only place stock is computed."""
     con = db()
     rows = con.execute("""
         SELECT i.*, COALESCE(SUM(t.qty_base), 0) AS stock
         FROM items i LEFT JOIN txns t ON t.item_id = i.id
+        WHERE i.shop_id = ?
         GROUP BY i.id ORDER BY i.name
-    """).fetchall()
+    """, (shop,)).fetchall()
     con.close()
     out = []
     for r in rows:
@@ -129,15 +263,15 @@ def home():
 
 
 @app.get("/stock")
-def stock():
-    return stock_rows()
+def stock(shop: int = Depends(current_shop)):
+    return stock_rows(shop)
 
 
 @app.post("/parse")
-def do_parse(body: dict):
+def do_parse(body: dict, shop: int = Depends(current_shop)):
     """Read-only on purpose. Nothing here touches the database - the user has
     to approve a movement before it becomes real."""
-    moves = nlu.parse(body.get("text", ""), stock_rows(), body.get("mode", "command"))
+    moves = nlu.parse(body.get("text", ""), stock_rows(shop), body.get("mode", "command"))
     for m in moves:                       # trim the item down for the wire
         if "item" in m:
             m["item"] = {k: m["item"][k] for k in
@@ -149,9 +283,9 @@ def do_parse(body: dict):
 
 
 @app.post("/commit")
-def commit(body: dict):
+def commit(body: dict, shop: int = Depends(current_shop)):
     """The only endpoint that writes. One approved movement -> one ledger row."""
-    item = next((i for i in stock_rows() if i["id"] == body.get("item_id")), None)
+    item = next((i for i in stock_rows(shop) if i["id"] == body.get("item_id")), None)
     if not item:
         raise HTTPException(404, "unknown item")
     try:
@@ -166,9 +300,9 @@ def commit(body: dict):
 
     con = db()
     cur = con.execute(
-        "INSERT INTO txns (item_id,qty,unit,qty_base,transcript,lang,confidence,source)"
-        " VALUES (?,?,?,?,?,?,?,?)",
-        (item["id"], qty, unit, qty_base, body.get("transcript"), body.get("lang"),
+        "INSERT INTO txns (shop_id,item_id,qty,unit,qty_base,transcript,lang,confidence,source)"
+        " VALUES (?,?,?,?,?,?,?,?,?)",
+        (shop, item["id"], qty, unit, qty_base, body.get("transcript"), body.get("lang"),
          body.get("confidence"), body.get("source", "command")))
     con.commit()
     txn_id = cur.lastrowid
@@ -179,28 +313,29 @@ def commit(body: dict):
 
 
 @app.post("/undo/{txn_id}")
-def undo(txn_id: int):
+def undo(txn_id: int, shop: int = Depends(current_shop)):
     """Reverse a movement by adding the opposite row. We never delete history."""
     con = db()
-    t = con.execute("SELECT * FROM txns WHERE id=?", (txn_id,)).fetchone()
+    t = con.execute("SELECT * FROM txns WHERE id=? AND shop_id=?", (txn_id, shop)).fetchone()
     if not t:
         con.close()
         raise HTTPException(404, "unknown entry")
     con.execute(
-        "INSERT INTO txns (item_id,qty,unit,qty_base,transcript,lang,source)"
-        " VALUES (?,?,?,?,?,?,'undo')",
-        (t["item_id"], t["qty"], t["unit"], -t["qty_base"], f"undo of #{txn_id}", t["lang"]))
+        "INSERT INTO txns (shop_id,item_id,qty,unit,qty_base,transcript,lang,source)"
+        " VALUES (?,?,?,?,?,?,?,'undo')",
+        (shop, t["item_id"], t["qty"], t["unit"], -t["qty_base"],
+         f"undo of #{txn_id}", t["lang"]))
     con.commit()
     con.close()
     return {"ok": True}
 
 
 @app.get("/search")
-def search(q: str = ""):
+def search(q: str = "", shop: int = Depends(current_shop)):
     """Find an item by ANY alias in ANY language: 'rice', 'chawal' and 'बियाम'
     all reach the same row. This is the escape hatch when a match is wrong."""
     q = q.strip().lower()
-    rows = stock_rows()
+    rows = stock_rows(shop)
     if not q:
         return rows
     return [i for i in rows
@@ -208,7 +343,7 @@ def search(q: str = ""):
 
 
 @app.post("/items")
-def add_item(body: dict):
+def add_item(body: dict, shop: int = Depends(current_shop)):
     """Add something the shop stocks that we had never heard of.
 
     The word actually spoken becomes the item's first alias, so the very next
@@ -224,9 +359,9 @@ def add_item(body: dict):
 
     con = db()
     cur = con.execute(
-        "INSERT INTO items (name,name_hi,name_te,aliases,base_unit,packs,"
-        "reorder_level,target_level,last_price) VALUES (?,?,?,?,?,'{}',?,?,0)",
-        (name, name, name, json.dumps(aliases), base,
+        "INSERT INTO items (shop_id,name,name_hi,name_te,aliases,base_unit,packs,"
+        "reorder_level,target_level,last_price) VALUES (?,?,?,?,?,?,'{}',?,?,0)",
+        (shop, name, name, name, json.dumps(aliases), base,
          float(body.get("reorder_level") or 0), float(body.get("target_level") or 0)))
     con.commit()
     new_id = cur.lastrowid
@@ -235,7 +370,7 @@ def add_item(body: dict):
 
 
 @app.post("/items/{item_id}/alias")
-def learn_alias(item_id: int, body: dict):
+def learn_alias(item_id: int, body: dict, shop: int = Depends(current_shop)):
     """THE LEARNING STEP. Every correction teaches the lexicon.
 
     When the owner says "tamatar" and fixes the match to Tomato, that word is
@@ -245,7 +380,8 @@ def learn_alias(item_id: int, body: dict):
     if not word:
         return {"learned": False}
     con = db()
-    row = con.execute("SELECT aliases FROM items WHERE id=?", (item_id,)).fetchone()
+    row = con.execute("SELECT aliases FROM items WHERE id=? AND shop_id=?",
+                      (item_id, shop)).fetchone()
     if not row:
         con.close()
         raise HTTPException(404, "unknown item")
@@ -261,10 +397,10 @@ def learn_alias(item_id: int, body: dict):
 
 
 @app.get("/alerts")
-def alerts():
+def alerts(shop: int = Depends(current_shop)):
     """Low stock, with how much to order expressed in the unit you actually buy in."""
     out = []
-    for i in stock_rows():
+    for i in stock_rows(shop):
         if i["status"] == "ok":
             continue
         need = i["target_level"] - i["stock"]
@@ -275,24 +411,26 @@ def alerts():
 
 
 @app.get("/item/{item_id}")
-def item(item_id: int):
-    i = next((x for x in stock_rows() if x["id"] == item_id), None)
+def item(item_id: int, shop: int = Depends(current_shop)):
+    i = next((x for x in stock_rows(shop) if x["id"] == item_id), None)
     if not i:
         raise HTTPException(404, "unknown item")
     con = db()
     i["history"] = [dict(r) for r in con.execute(
-        "SELECT * FROM txns WHERE item_id=? ORDER BY id DESC LIMIT 15", (item_id,))]
+        "SELECT * FROM txns WHERE item_id=? AND shop_id=? ORDER BY id DESC LIMIT 15",
+        (item_id, shop))]
     con.close()
     return i
 
 
 @app.get("/export.csv", response_class=PlainTextResponse)
-def export():
+def export(shop: int = Depends(current_shop)):
     """Backup. The owner's data should never be locked inside our database."""
     con = db()
     rows = con.execute(
         "SELECT t.id,t.created_at,i.name,t.qty,t.unit,t.qty_base,t.source,t.transcript"
-        " FROM txns t JOIN items i ON i.id=t.item_id ORDER BY t.id").fetchall()
+        " FROM txns t JOIN items i ON i.id=t.item_id WHERE t.shop_id=? ORDER BY t.id",
+        (shop,)).fetchall()
     con.close()
     lines = ["id,when,item,qty,unit,change,source,heard"]
     lines += [",".join(f'"{v}"' for v in r) for r in rows]
