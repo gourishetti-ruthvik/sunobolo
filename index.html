@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<title>SunoBolo</title>
+<style>
+:root{--bg:#f6f7f5;--card:#fff;--ink:#15211d;--mut:#6b7a74;--line:#e3e8e5;
+      --brand:#0f766e;--ok:#16a34a;--low:#d97706;--out:#dc2626;--r:16px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);padding-bottom:96px;
+     font:16px/1.45 system-ui,"Segoe UI","Noto Sans","Noto Sans Devanagari","Noto Sans Telugu",sans-serif}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+.wrap{max-width:520px;margin:0 auto}
+header{background:var(--brand);color:#fff;padding:14px 16px;display:flex;
+       justify-content:space-between;align-items:center;gap:10px;position:sticky;top:0;z-index:5}
+.shop{font-size:17px;font-weight:700}.sub{font-size:12px;opacity:.75}
+.langs{display:flex;gap:2px;background:rgba(255,255,255,.15);padding:3px;border-radius:99px}
+.langs button{padding:7px 9px;border-radius:99px;font-size:12px;color:#fff;opacity:.8}
+.langs button.on{background:#fff;color:var(--brand);font-weight:700;opacity:1}
+main{padding:14px}
+
+/* Counter Mode - the differentiator, so it gets the loudest control */
+.counter{display:flex;align-items:center;gap:12px;background:var(--card);border:2px solid var(--line);
+         border-radius:var(--r);padding:14px;margin-bottom:12px}
+.counter.on{border-color:var(--brand);background:#f0fdfa}
+.counter .txt{flex:1}.counter .txt b{display:block;font-size:15px}
+.counter .txt span{font-size:12px;color:var(--mut)}
+.sw{width:54px;height:31px;border-radius:99px;background:var(--line);position:relative;flex:0 0 auto}
+.sw i{position:absolute;top:3px;left:3px;width:25px;height:25px;border-radius:50%;background:#fff;
+      transition:.18s;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.counter.on .sw{background:var(--brand)}.counter.on .sw i{left:26px}
+.ear{width:11px;height:11px;border-radius:50%;background:var(--out);animation:blink 1.1s infinite}
+@keyframes blink{50%{opacity:.25}}
+.heard{font-size:13px;color:var(--mut);font-style:italic;padding:0 4px 10px;min-height:20px}
+
+.banner{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;padding:12px 14px;
+        border-radius:var(--r);font-weight:600;margin-bottom:12px;font-size:15px}
+input.search{width:100%;padding:13px 15px;border-radius:var(--r);border:1px solid var(--line);
+             font-size:16px;margin-bottom:12px;outline:none}
+.list{display:flex;flex-direction:column;gap:9px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;
+     background:var(--card);border-radius:var(--r);padding:14px;border-left:5px solid var(--ok);
+     box-shadow:0 2px 10px rgba(16,40,34,.06)}
+.row.low{border-left-color:var(--low)}.row.out{border-left-color:var(--out)}
+.nm{font-size:17px;font-weight:600}.nm span{display:block;font-size:12px;color:var(--mut);font-weight:400}
+.qt{text-align:right;white-space:nowrap}.qt b{font-size:21px}.qt em{font-size:13px;color:var(--mut);font-style:normal}
+.pill{display:inline-block;margin-top:3px;padding:3px 9px;border-radius:99px;font-size:11px;
+      font-weight:700;background:#dcfce7;color:#166534}
+.pill.low{background:#ffedd5;color:#9a3412}.pill.out{background:#fee2e2;color:#991b1b}
+.sugg{text-align:right;font-size:12px;color:var(--mut)}.sugg b{display:block;font-size:18px;color:var(--brand)}
+
+/* proposal cards */
+.prop{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--brand);
+      border-radius:var(--r);padding:14px;margin-bottom:9px}
+.prop.unsure{border-left-color:var(--low);background:#fffbeb}
+.quote{font-size:13px;color:var(--mut);font-style:italic;margin:0 0 10px}
+.score{float:right;font-size:11px;font-weight:700;background:#dcfce7;color:#166534;padding:3px 8px;border-radius:99px}
+.score.w{background:#ffedd5;color:#9a3412}
+.step{display:flex;align-items:center;gap:12px;justify-content:center;margin:10px 0}
+.step button{width:46px;height:46px;border-radius:50%;background:var(--line);font-size:24px;font-weight:700}
+.qv{min-width:110px;text-align:center}.qv b{font-size:31px;display:block;line-height:1}
+.qv em{font-size:13px;color:var(--mut);font-style:normal}
+.chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.chips button{padding:9px 14px;border-radius:99px;border:1.5px solid var(--line);background:#fff;font-size:14px}
+.chips button.on{background:var(--brand);color:#fff;border-color:var(--brand);font-weight:600}
+.chips.dir button{flex:1}.chips.dir button.on.i{background:var(--ok);border-color:var(--ok)}
+.chips.dir button.on.o{background:var(--out);border-color:var(--out)}
+.acts{display:flex;gap:9px;margin-top:12px}
+.btn{flex:1;padding:14px;border-radius:var(--r);font-size:16px;font-weight:700;background:var(--line)}
+.btn.go{background:var(--brand);color:#fff}
+.btn.wide{width:100%;margin-top:10px}
+.empty{text-align:center;padding:50px 20px;color:var(--mut)}
+
+nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-around;max-width:520px;margin:0 auto;
+    padding:8px 0 calc(8px + env(safe-area-inset-bottom));z-index:6}
+nav>button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;
+           color:var(--mut);padding:6px 0;position:relative}
+nav>button.on{color:var(--brand);font-weight:700}
+nav>button.mic{flex:0 0 64px;width:64px;height:64px;border-radius:50%;background:var(--brand);
+               color:#fff;font-size:27px;margin-top:-26px;display:grid;place-items:center;
+               box-shadow:0 6px 18px rgba(15,118,110,.4)}
+.dot{position:absolute;top:0;right:24%;background:var(--out);color:#fff;font-style:normal;font-size:10px;
+     font-weight:700;min-width:18px;height:18px;border-radius:9px;display:grid;place-items:center;padding:0 4px}
+.sheet{position:fixed;inset:0;background:rgba(10,25,21,.5);z-index:20;display:flex;align-items:flex-end}
+.card{background:#fff;width:100%;max-width:520px;margin:0 auto;border-radius:22px 22px 0 0;
+      padding:16px 18px calc(22px + env(safe-area-inset-bottom));max-height:90vh;overflow:auto}
+.big{background:#f0fdfa;border-radius:var(--r);padding:16px;text-align:center}
+.big b{font-size:40px}.big em{font-size:16px;color:var(--mut);font-style:normal}
+.facts{display:flex;flex-direction:column;gap:1px;background:var(--line);border-radius:var(--r);
+       overflow:hidden;margin-top:12px}
+.facts div{display:flex;justify-content:space-between;background:#fff;padding:12px 14px;font-size:14px}
+.facts span{color:var(--mut)}
+.h{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:7px;font-size:14px}
+.h b{color:var(--ok)}.h.neg b{color:var(--out)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:108px;z-index:30;background:var(--ink);
+       color:#fff;padding:13px 18px;border-radius:13px;font-size:15px;width:calc(100% - 32px);max-width:460px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div><div class="shop" id="shopName">रमेश किराना स्टोर</div><div class="sub" id="shopSub"></div></div>
+    <div class="langs" id="langs"></div>
+  </header>
+  <main id="main"></main>
+</div>
+<nav class="wrap">
+  <button id="tabStock" onclick="go('stock')"><span style="font-size:20px">📦</span><span id="lblStock"></span></button>
+  <button class="mic" onclick="micEntry()">🎤</button>
+  <button id="tabAlerts" onclick="go('alerts')"><span style="font-size:20px">🔔</span><span id="lblAlerts"></span><i class="dot" id="alertDot" hidden></i></button>
+</nav>
+<div id="sheet"></div>
+
+<script>
+// ─── words shown to the user, one set per language (templates, not translation) ───
+const T = {
+  hi:{stock:'स्टॉक',alerts:'अलर्ट',counter:'काउंटर मोड',counterOff:'दुकान की बात सुनकर स्टॉक लिखें',
+      counterOn:'सुन रहे हैं…',pending:'जाँच लीजिए',acceptAll:'सब सही हैं',search:'सामान ढूंढें',
+      low:'कम है',out:'खत्म',ok:'ठीक है',yes:'सही है',no:'नहीं',order:'मंगवाएं',history:'पिछली एंट्री',
+      maybe:'शायद…',speak:'बोलिए',type:'लिखकर बताइए',none:'अभी कुछ नहीं',
+      added:(q,u,n,t,b)=>`${q} ${u} ${n} जोड़ा गया। अब स्टॉक ${t} ${b} है।`,
+      removed:(q,u,n,t,b)=>`${q} ${u} ${n} निकाला गया। अब स्टॉक ${t} ${b} है।`,
+      answer:(n,t,b)=>`${n} ${t} ${b} बचा है।`, lowMsg:c=>`${c} सामान कम हैं`},
+  te:{stock:'నిల్వ',alerts:'హెచ్చరికలు',counter:'కౌంటర్ మోడ్',counterOff:'దుకాణం మాట వింటూ నిల్వ రాయండి',
+      counterOn:'వింటున్నాం…',pending:'చూడండి',acceptAll:'అన్నీ సరే',search:'వస్తువు వెతకండి',
+      low:'తక్కువ',out:'అయిపోయింది',ok:'సరే',yes:'సరే',no:'వద్దు',order:'ఆర్డర్',history:'గత నమోదులు',
+      maybe:'బహుశా…',speak:'చెప్పండి',type:'టైప్ చేయండి',none:'ఇప్పుడు ఏమీ లేదు',
+      added:(q,u,n,t,b)=>`${q} ${u} ${n} చేర్చాము. ఇప్పుడు నిల్వ ${t} ${b}.`,
+      removed:(q,u,n,t,b)=>`${q} ${u} ${n} తీసేశాము. ఇప్పుడు నిల్వ ${t} ${b}.`,
+      answer:(n,t,b)=>`${n} ${t} ${b} ఉంది.`, lowMsg:c=>`${c} వస్తువులు తక్కువ`},
+  en:{stock:'Stock',alerts:'Alerts',counter:'Counter Mode',counterOff:'Log stock by listening to the shop',
+      counterOn:'Listening…',pending:'Please check',acceptAll:'All correct',search:'Find item',
+      low:'Low',out:'Out',ok:'OK',yes:'Correct',no:'No',order:'Order',history:'Recent entries',
+      maybe:'Maybe…',speak:'Speak',type:'Type instead',none:'Nothing right now',
+      added:(q,u,n,t,b)=>`Added ${q} ${u} ${n}. Stock is now ${t} ${b}.`,
+      removed:(q,u,n,t,b)=>`Removed ${q} ${u} ${n}. Stock is now ${t} ${b}.`,
+      answer:(n,t,b)=>`You have ${t} ${b} of ${n}.`, lowMsg:c=>`${c} items running low`},
+};
+const LOCALE = {hi:'hi-IN', te:'te-IN', en:'en-IN'};
+
+// ─── state ───
+let lang='hi', tab='stock', items=[], alerts=[], props=[], counterOn=false, nextId=1;
+const t = () => T[lang];
+const nameOf = i => lang==='hi' ? i.name_hi : lang==='te' ? i.name_te : i.name;
+const api = (p,body) => fetch(p, body ? {method:'POST',headers:{'Content-Type':'application/json'},
+                                         body:JSON.stringify(body)} : undefined).then(r=>r.json());
+
+// ─── speech ───
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let counterRec = null;
+
+function say(text){                       // spoken reply, one line, no dependency
+  if(!window.speechSynthesis) return;
+  const u = new SpeechSynthesisUtterance(text); u.lang = LOCALE[lang]; u.rate = .95;
+  speechSynthesis.cancel(); speechSynthesis.speak(u);
+}
+
+/* COUNTER MODE - the idea of the product.
+   Chrome ends a continuous session on long silence, so onend restarts it.
+   Without that the app goes quietly deaf after the first lull at the counter. */
+function toggleCounter(){
+  if(!SR){ alert(t().type); return; }
+  counterOn = !counterOn;
+  if(!counterOn){ counterRec.onend = null; counterRec.stop(); counterRec = null; render(); return; }
+
+  counterRec = new SR();
+  counterRec.lang = LOCALE[lang];
+  counterRec.continuous = true;
+  counterRec.interimResults = true;
+
+  counterRec.onresult = e => {
+    let live = '';
+    for(let i=e.resultIndex; i<e.results.length; i++){
+      const txt = e.results[i][0].transcript;
+      if(e.results[i].isFinal) propose(txt, 'counter'); else live += txt;
+    }
+    const el = document.getElementById('heard'); if(el) el.textContent = live;
+  };
+  counterRec.onend = () => { if(counterOn) counterRec.start(); };   // keep listening
+  counterRec.start();
+  render();
+}
+
+/* COMMAND MODE - the reliable floor. One deliberate sentence.
+   NOTE: this cannot be called command() - Chrome buttons now have their own
+   .command property, which shadows a global of that name inside onclick. */
+function micEntry(){
+  if(!SR) return manual();
+  const rec = new SR(); rec.lang = LOCALE[lang]; rec.interimResults = true;
+  // On failure the browser fires onerror AND THEN onend. Without this flag,
+  // onend closes the fallback sheet that onerror just opened.
+  let final = '', failed = false;
+  sheet(`<div style="text-align:center;padding:20px 0">
+           <div style="font-size:50px">🎤</div><h2>${t().speak}</h2>
+           <p class="quote" id="live">…</p></div>`);
+  rec.onresult = e => {
+    let live='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const x = e.results[i][0].transcript;
+      if(e.results[i].isFinal) final += x; else live += x;
+    }
+    document.getElementById('live').textContent = final + live;
+  };
+  rec.onend = () => { if(failed) return; closeSheet(); if(final.trim()) propose(final.trim(), 'command'); };
+  rec.onerror = () => { failed = true; closeSheet(); manual(); };
+  rec.start();
+}
+
+function manual(){                        // works with no microphone at all
+  sheet(`<h3>${t().type}</h3>
+    <input class="search" id="mtext" placeholder="बीस किलो चावल आया" autofocus>
+    <button class="btn go wide" onclick="const v=document.getElementById('mtext').value;
+      closeSheet(); if(v.trim()) propose(v.trim(),'manual')">${t().ok}</button>`);
+}
+
+// ─── the loop: text -> /parse -> proposals ───
+async function propose(text, source){
+  const r = await api('/parse', {text, lang, mode: source==='counter'?'counter':'command'});
+  for(const m of r.moves){
+    if(m.action === 'query_item'){ say(t().answer(nameOf(m.item), m.item.stock, m.item.base_unit)); continue; }
+    if(m.action === 'query_low'){ say(t().lowMsg(alerts.length)); go('alerts'); continue; }
+    m.id = nextId++; m.source = source; m.direction = m.action==='stock_out' ? 'out' : 'in';
+    props.unshift(m);
+  }
+  render();
+}
+
+async function accept(id){
+  const m = props.find(p => p.id === id); if(!m) return;
+  const r = await api('/commit', {item_id:m.item.id, qty:m.qty, unit:m.unit, direction:m.direction,
+                                  transcript:m.transcript, lang, confidence:m.confidence, source:m.source});
+  props = props.filter(p => p.id !== id);
+  const msg = (m.direction==='out' ? t().removed : t().added)(m.qty, m.unit, nameOf(m.item), r.new_total, r.base_unit);
+  toast(msg); say(msg);
+  await load();
+}
+const reject = id => { props = props.filter(p => p.id !== id); render(); };
+async function acceptAll(){ for(const p of props.filter(p=>p.sure)) await accept(p.id); }
+
+function edit(id, patch){ Object.assign(props.find(p=>p.id===id), patch); render(); }
+
+// ─── rendering ───
+async function load(){ [items, alerts] = await Promise.all([api('/stock'), api('/alerts')]); render(); }
+
+function render(){
+  document.getElementById('shopSub').textContent = `${items.length} ${t().stock}`;
+  document.getElementById('lblStock').textContent = t().stock;
+  document.getElementById('lblAlerts').textContent = t().alerts;
+  document.getElementById('tabStock').className = tab==='stock' ? 'on':'';
+  document.getElementById('tabAlerts').className = tab==='alerts' ? 'on':'';
+  const d = document.getElementById('alertDot'); d.hidden = !alerts.length; d.textContent = alerts.length;
+  document.getElementById('langs').innerHTML = ['hi','te','en'].map(l =>
+    `<button class="${l===lang?'on':''}" onclick="setLang('${l}')">${({hi:'हिंदी',te:'తెలుగు',en:'EN'})[l]}</button>`).join('');
+
+  let h = `<div class="counter ${counterOn?'on':''}" onclick="toggleCounter()">
+      ${counterOn ? '<span class="ear"></span>' : '<span style="font-size:22px">👂</span>'}
+      <div class="txt"><b>${t().counter}</b><span>${counterOn ? t().counterOn : t().counterOff}</span></div>
+      <div class="sw"><i></i></div></div>`;
+  if(counterOn) h += `<div class="heard" id="heard"></div>`;
+
+  if(props.length){
+    h += `<div class="banner" style="display:flex;justify-content:space-between;align-items:center">
+            <span>📋 ${t().pending} (${props.length})</span>
+            ${props.some(p=>p.sure) ? `<button class="btn go" style="flex:0 0 auto;padding:9px 14px;
+               font-size:14px;white-space:nowrap" onclick="acceptAll()">${t().acceptAll}</button>` : ''}</div>`;
+    h += props.map(card).join('');
+  }
+
+  if(tab === 'stock'){
+    if(alerts.length) h += `<div class="banner">⚠️ ${t().lowMsg(alerts.length)}</div>`;
+    const rank = {out:0, low:1, ok:2};
+    h += '<div class="list">' + [...items].sort((a,b)=>rank[a.status]-rank[b.status]).map(i =>
+      `<button class="row ${i.status}" onclick="detail(${i.id})">
+         <div class="nm">${nameOf(i)}<span>${i.name}</span></div>
+         <div class="qt"><b>${i.stock}</b> <em>${i.base_unit}</em>
+           <div class="pill ${i.status}">${i.status==='out'?t().out:i.status==='low'?t().low:t().ok}</div></div>
+       </button>`).join('') + '</div>';
+  } else {
+    h += alerts.length ? '<div class="list">' + alerts.map(a =>
+      `<button class="row ${a.status}" onclick="detail(${a.id})">
+         <div class="nm">${nameOf(a)}<span>${a.stock} ${a.base_unit}</span></div>
+         <div class="sugg">${t().order}<b>${a.order_qty} ${a.order_unit}</b>${a.need} ${a.base_unit}</div>
+       </button>`).join('') + '</div>' : `<div class="empty">✅ ${t().none}</div>`;
+  }
+  document.getElementById('main').innerHTML = h;
+}
+
+/* A proposal card. Everything on it is correctable with a tap - that is both
+   the correction feature and the safety net for a fuzzy match being wrong. */
+function card(m){
+  const units = [m.item.base_unit, ...Object.keys(m.item.packs)];
+  return `<div class="prop ${m.sure?'':'unsure'}">
+    <span class="score ${m.sure?'':'w'}">${Math.round(m.confidence)}%</span>
+    <p class="quote">“${m.transcript}”</p>
+    <div style="font-size:20px;font-weight:700">${nameOf(m.item)}</div>
+    ${!m.sure && m.candidates.length ? `<div style="font-size:12px;color:var(--mut);margin-top:6px">${t().maybe}</div>
+      <div class="chips">${m.candidates.map(c=>`<button onclick='edit(${m.id},{item:${JSON.stringify(
+         {...c, base_unit:m.item.base_unit, packs:m.item.packs, stock:0})},confidence:100,sure:true})'>${nameOf(c)}</button>`).join('')}</div>`:''}
+    <div class="step">
+      <button onclick="edit(${m.id},{qty:Math.max(.5,${m.qty}-1)})">−</button>
+      <div class="qv"><b>${m.qty}</b><em>${m.unit}</em></div>
+      <button onclick="edit(${m.id},{qty:${m.qty}+1})">+</button></div>
+    <div class="chips">${units.map(u=>`<button class="${u===m.unit?'on':''}"
+       onclick="edit(${m.id},{unit:'${u}'})">${u}</button>`).join('')}</div>
+    <div class="chips dir">
+      <button class="${m.direction==='in'?'on i':''}" onclick="edit(${m.id},{direction:'in'})">↓ IN</button>
+      <button class="${m.direction==='out'?'on o':''}" onclick="edit(${m.id},{direction:'out'})">↑ OUT</button></div>
+    <div class="acts"><button class="btn" onclick="reject(${m.id})">${t().no}</button>
+      <button class="btn go" onclick="accept(${m.id})">${t().yes}</button></div></div>`;
+}
+
+async function detail(id){
+  const i = await api('/item/'+id);
+  sheet(`<h2 style="margin:4px 0 10px">${nameOf(i)}</h2>
+    <div class="big"><b>${i.stock}</b> <em>${i.base_unit}</em></div>
+    <div class="facts">
+      ${Object.entries(i.packs).map(([u,f])=>`<div><span>1 ${u}</span><b>${f} ${i.base_unit}</b></div>`).join('')}
+      <div><span>${t().low}</span><b>${i.reorder_level} ${i.base_unit}</b></div>
+      <div><span>₹</span><b>${i.last_price}/${i.base_unit}</b></div></div>
+    <h3 style="font-size:14px;color:var(--mut)">${t().history}</h3>
+    ${i.history.map(x=>`<div class="h ${x.qty_base<0?'neg':''}">
+        <b>${x.qty_base>0?'+':''}${x.qty_base} ${i.base_unit}</b> — “${x.transcript||''}”</div>`).join('')}
+    <button class="btn wide" onclick="closeSheet()">${t().ok}</button>`);
+}
+
+// ─── small helpers ───
+const sheet = html => document.getElementById('sheet').innerHTML =
+  `<div class="sheet" onclick="if(event.target===this)closeSheet()"><div class="card">${html}</div></div>`;
+const closeSheet = () => document.getElementById('sheet').innerHTML = '';
+function toast(msg){
+  const d = document.createElement('div'); d.className='toast'; d.textContent=msg;
+  document.body.appendChild(d); setTimeout(()=>d.remove(), 4000);
+}
+const go = x => { tab = x; render(); };
+function setLang(l){
+  lang = l;
+  if(counterOn){ toggleCounter(); toggleCounter(); }   // restart recognition in the new locale
+  render();
+}
+
+load();
+</script>
+</body>
+</html>

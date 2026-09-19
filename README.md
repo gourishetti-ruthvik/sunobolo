@@ -17,7 +17,8 @@ is just another alias row.
 
 ## Run locally
 ```bash
-cd web && npm install && npm run dev
+pip install -r requirements.txt
+uvicorn app:app --reload
 ```
 
 ## Docs
