@@ -88,5 +88,36 @@ def run():
     print("all 22 auth checks passed")
 
 
+def dialect():
+    """The Postgres path cannot be exercised without a live Postgres, so test the
+    three translations it depends on. If these are right, the queries are too."""
+    import app as A
+
+    pg = A.SCHEMA
+    pg = (pg.replace("INTEGER PRIMARY KEY AUTOINCREMENT", "SERIAL PRIMARY KEY")
+            .replace("TEXT DEFAULT CURRENT_TIMESTAMP", "TIMESTAMPTZ DEFAULT now()")
+            .replace(" REAL", " DOUBLE PRECISION"))
+    assert "AUTOINCREMENT" not in pg and pg.count("SERIAL PRIMARY KEY") == 3, "id columns"
+    assert "CURRENT_TIMESTAMP" not in pg and pg.count("TIMESTAMPTZ") == 2, "timestamps"
+    assert " REAL" not in pg and "DOUBLE PRECISION" in pg, "float columns"
+    # the swaps must not have damaged anything else
+    assert pg.count("CREATE TABLE") == 3 and pg.count("REFERENCES") == 3
+
+    # every placeholder becomes %s, and inserts learn their new id
+    sql = "INSERT INTO txns (shop_id,item_id,qty) VALUES (?,?,?)"
+    conv = sql.replace("?", "%s")
+    assert conv.count("%s") == 3 and "?" not in conv
+    assert conv.lstrip()[:6].upper() == "INSERT" and "RETURNING" not in conv.upper()
+    sel = "SELECT * FROM items WHERE shop_id=?".replace("?", "%s")
+    assert sel.lstrip()[:6].upper() != "INSERT", "selects must not get RETURNING"
+
+    # COUNT(*) is aliased, because a dict row factory cannot be indexed by 0
+    src = open("app.py", encoding="utf-8").read()
+    assert ".fetchone()[0]" not in src, "a bare fetchone()[0] breaks on postgres"
+
+    print("all 9 dialect checks passed")
+
+
 if __name__ == "__main__":
     run()
+    dialect()

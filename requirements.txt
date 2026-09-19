@@ -3,3 +3,4 @@ uvicorn[standard]
 rapidfuzz
 jellyfish
 httpx
+psycopg[binary]

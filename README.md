@@ -114,7 +114,8 @@ it is right forever.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `DB_PATH` | `sunobolo.db` | SQLite file location |
+| `DATABASE_URL` | unset | A `postgresql://` URL switches the app to Postgres. Unset means SQLite. |
+| `DB_PATH` | `sunobolo.db` | SQLite file location (ignored when `DATABASE_URL` is set) |
 | `SECRET_KEY` | random per start | Signs session tokens. Unset means a restart signs everyone out. |
 | `GOOGLE_CLIENT_ID` | built-in | Google sign-in. Unset it to hide the button; the app works fine without. |
 

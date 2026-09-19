@@ -49,10 +49,22 @@ header{
   padding:13px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px;
   position:sticky;top:0;z-index:5;border-bottom:1px solid var(--line);
 }
-.shop{font-size:16px;font-weight:700;letter-spacing:-.2px}
-.sub{font-size:11.5px;color:var(--mut)}
+/* A flex item defaults to min-width:auto, so the name refused to shrink and
+   pushed the chevron outside the button. The text column has to be allowed to
+   shrink; the chevron must not. */
+.idbtn{display:flex;align-items:center;gap:5px;margin-right:auto;text-align:left;
+  padding:4px 6px 4px 4px;border-radius:12px;color:var(--ink);
+  min-width:0;flex:0 1 auto;overflow:hidden;transition:background .18s}
+.idbtn>span:first-child{min-width:0;overflow:hidden}
+.idbtn:hover,.idbtn:active{background:var(--surf2)}
+.idbtn #idChev{color:var(--v3);display:flex;flex:0 0 auto}
+.shop{font-size:16px;font-weight:700;letter-spacing:-.2px;display:block;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.sub{font-size:11.5px;color:var(--mut);display:block;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .who{font-size:11px;color:var(--mut2);display:block}
-.langs{display:flex;gap:2px;background:var(--surf2);border:1px solid var(--line);padding:3px;border-radius:99px}
+.langs{display:flex;gap:2px;background:var(--surf2);border:1px solid var(--line);
+  padding:3px;border-radius:99px;flex:0 0 auto}
 .langs button{padding:6px 9px;border-radius:99px;font-size:12px;color:var(--mut)}
 .langs button.on{background:var(--grad);color:#fff;font-weight:700}
 .theme-btn{
@@ -363,7 +375,10 @@ body.out #auth::before{content:"";position:fixed;left:50%;top:-180px;width:560px
 <body>
 <div class="wrap">
   <header>
-    <div><div class="shop" id="shopName"></div><div class="sub" id="shopSub"></div></div>
+    <button class="idbtn" onclick="accountSheet()">
+      <span><span class="shop" id="shopName"></span><span class="sub" id="shopSub"></span></span>
+      <span id="idChev"></span>
+    </button>
     <div class="langs" id="langs"></div>
     <button class="theme-btn" onclick="toggleTheme()" aria-label="theme"></button>
     <button class="acct-btn" id="acctBtn" onclick="accountSheet()"></button>
@@ -399,6 +414,7 @@ const PATHS = {
   swap:'<path d="m17 2 4 4-4 4"/><path d="M21 6H3"/><path d="m7 22-4-4 4-4"/><path d="M3 18h18"/>',
   pencil:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
   clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  chev:'<path d="m6 9 6 6 6-6"/>',
   logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
   wave:'<path d="M2 12h3M19 12h3"/><path d="M7 8v8M12 4v16M17 8v8"/>',
   sun:'<circle cx="12" cy="12" r="4.2"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
@@ -594,6 +610,7 @@ function render(){
   document.querySelector('nav .mic').innerHTML = icon('mic', 26);
   document.getElementById('icStock').innerHTML = icon('box', 21);
   document.getElementById('icAlerts').innerHTML = icon('bell', 21);
+  document.getElementById('idChev').innerHTML = icon('chev', 16);
   document.getElementById('lblAlerts').textContent = t().alerts;
   document.getElementById('tabStock').className = tab==='stock' ? 'on':'';
   document.getElementById('tabAlerts').className = tab==='alerts' ? 'on':'';

@@ -29,6 +29,13 @@ from fastapi.responses import FileResponse, PlainTextResponse
 import parse as nlu
 
 DB = os.environ.get("DB_PATH", "sunobolo.db")
+# Postgres when the host gives us one, SQLite otherwise. Free hosting wipes the
+# filesystem on every restart, so a file-backed database there is not durable.
+DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+PG = DATABASE_URL.startswith(("postgres://", "postgresql://"))
+if PG:
+    import psycopg
+    from psycopg.rows import dict_row
 # ponytail: a process-lifetime secret is fine for one free-tier instance - a
 # restart just signs everyone out. Set SECRET_KEY in the environment to keep
 # sessions across restarts, and before ever running more than one instance.
@@ -108,14 +115,68 @@ SEED = [
 ]
 
 
+class Cur:
+    """Just enough cursor for psycopg to look like sqlite3's."""
+    def __init__(self, cur, lastrowid=None):
+        self._c, self.lastrowid = cur, lastrowid
+    def fetchone(self): return self._c.fetchone()
+    def fetchall(self): return self._c.fetchall()
+    def __iter__(self): return iter(self._c)
+
+
+class Conn:
+    """One connection over two dialects.
+
+    Only three things actually differ, so only three things are handled here:
+    the placeholder character, how you learn the id of a row you just inserted,
+    and running a multi-statement script. Every query in this file stays written
+    once, in SQLite syntax.
+    """
+    def __init__(self, raw): self.raw = raw
+
+    def execute(self, sql, args=()):
+        if not PG:
+            return self.raw.execute(sql, args)
+        sql = sql.replace("?", "%s")
+        if sql.lstrip()[:6].upper() == "INSERT" and "RETURNING" not in sql.upper():
+            # psycopg has no lastrowid - ask Postgres for the id on the way in
+            cur = self.raw.execute(sql + " RETURNING id", args)
+            row = cur.fetchone()
+            return Cur(cur, row["id"] if row else None)
+        return Cur(self.raw.execute(sql, args))
+
+    def executescript(self, sql):
+        return self.raw.execute(sql) if PG else self.raw.executescript(sql)
+
+    def commit(self): self.raw.commit()
+    def close(self): self.raw.close()
+
+
 def db():
+    if PG:
+        return Conn(psycopg.connect(DATABASE_URL, row_factory=dict_row))
     con = sqlite3.connect(DB)
     con.row_factory = sqlite3.Row        # rows behave like dicts
-    return con
+    return Conn(con)
+
+
+def schema_sql():
+    """The schema is written once in SQLite syntax; Postgres needs three swaps."""
+    if not PG:
+        return SCHEMA
+    return (SCHEMA
+            .replace("INTEGER PRIMARY KEY AUTOINCREMENT", "SERIAL PRIMARY KEY")
+            .replace("TEXT DEFAULT CURRENT_TIMESTAMP", "TIMESTAMPTZ DEFAULT now()")
+            .replace(" REAL", " DOUBLE PRECISION"))
 
 
 def setup():
     con = db()
+    if PG:                               # a managed database starts empty
+        con.executescript(schema_sql())
+        con.commit()
+        con.close()
+        return
     # The single-shop version had no shop_id. Nothing in it was real data, so
     # starting the multi-shop schema clean is safer than guessing an owner.
     if con.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='items'").fetchone():
@@ -129,7 +190,7 @@ def setup():
             # Only demo accounts exist at this point, so rebuild rather than guess.
             con.executescript("DROP TABLE IF EXISTS txns; DROP TABLE IF EXISTS items;"
                               "DROP TABLE IF EXISTS shops;")
-    con.executescript(SCHEMA)
+    con.executescript(schema_sql())
     con.commit()
     con.close()
 
@@ -252,8 +313,10 @@ def me(shop: int = Depends(current_shop)):
         con.close()
         raise HTTPException(401, "please sign in again")
     out = dict(row)
-    out["items"] = con.execute("SELECT COUNT(*) FROM items WHERE shop_id=?", (shop,)).fetchone()[0]
-    out["entries"] = con.execute("SELECT COUNT(*) FROM txns WHERE shop_id=?", (shop,)).fetchone()[0]
+    out["items"] = con.execute(
+        "SELECT COUNT(*) AS n FROM items WHERE shop_id=?", (shop,)).fetchone()["n"]
+    out["entries"] = con.execute(
+        "SELECT COUNT(*) AS n FROM txns WHERE shop_id=?", (shop,)).fetchone()["n"]
     con.close()
     return out
 
