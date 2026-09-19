@@ -188,10 +188,12 @@ live  : 15100c6
 OK    : the live site is running your latest commit
 ```
 
-Render auto-deploy needs a GitHub webhook, and a service created through the API does not
-get one — it reports `autoDeploy: yes` and silently never fires. Fix it once in the Render
-dashboard: **Settings → Build & Deploy → Repository → Connect** (authorise the Render
-GitHub App for this repo). Until then, deploy with **Manual Deploy → Deploy latest commit**.
+Pushing to `main` auto-deploys. If that ever stops working, a service created through
+Render's API reports `autoDeploy: yes` whether or not its GitHub integration is actually
+connected, so the failure is silent — reconnect under **Settings → Build & Deploy →
+Repository**, and confirm with a push rather than by inspecting settings. The script above
+is the check: a deploy triggered by a push shows as `new_commit` in Render's deploy list,
+one you started by hand shows as `api`.
 
 ---
 
