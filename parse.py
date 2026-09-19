@@ -48,9 +48,14 @@ MULTIPLIERS = {"sau", "hazaar", "nooru", "veyyi"}
 
 # "sab nikal do" = take out ALL of it. These are quantities, not item names -
 # without this, "sab" went to the item matcher and the app asked what "sab" was.
+# Quantities and generic nouns for "goods", not item names. "sab kuch nikal do"
+# used to reach the matcher as the word "kuch" and offer to create an item
+# called kuch, which is nonsense - these are the words that mean "everything".
 ALL_WORDS = {"sab", "sabhi", "saara", "sara", "poora", "pura", "puri", "सब", "सारा",
-             "anni", "antha", "motham", "అన్ని", "మొత్తం",
-             "all", "everything", "whole", "full"}
+             "kuch", "kuchh", "kuchh bhi", "कुछ",
+             "maal", "samaan", "saman", "saamaan", "सामान", "माल", "stock", "stok",
+             "anni", "antha", "motham", "saamanu", "అన్ని", "మొత్తం", "సామాను",
+             "all", "everything", "whole", "full", "goods"}
 
 # ── Units that mean the same everywhere ──────────────────────────────────────
 # unit spoken -> (base unit it converts to, how many base units it is worth)

@@ -26,7 +26,15 @@ def run():
                                   "phone": "9000000001", "pin": "4321", "lang": "te"}).json()
     assert a["token"] != b["token"]
 
-    # each starts with its own copy of the catalogue
+    # a new shop starts EMPTY - its stock is the owner's, not our sample
+    assert c.get("/stock", headers=auth(a["token"])).json() == []
+    assert c.get("/stock", headers=auth(b["token"])).json() == []
+
+    # the sample catalogue is opt-in, and cannot be applied twice
+    assert c.post("/seed", headers=auth(a["token"])).json()["added"] == 8
+    assert c.post("/seed", headers=auth(a["token"])).status_code == 409
+    c.post("/seed", headers=auth(b["token"]))
+
     sa, sb = c.get("/stock", headers=auth(a["token"])).json(), c.get("/stock", headers=auth(b["token"])).json()
     assert len(sa) == len(sb) == 8
     assert not ({i["id"] for i in sa} & {i["id"] for i in sb}), "item ids leaked between shops"
@@ -85,7 +93,31 @@ def run():
     assert c.post("/shop/name", headers=auth(a["token"]), json={"shop_name": "  "}).status_code == 400
     assert c.post("/shop/name", json={"shop_name": "X"}).status_code == 401
 
-    print("all 22 auth checks passed")
+    # editing an item keeps the old name matchable, and is scoped to the shop
+    assert c.post(f"/item/{rice_a['id']}/edit", headers=auth(a["token"]),
+                  json={"name": "Basmati Rice", "reorder_level": 60,
+                        "target_level": 200}).status_code == 200
+    ra = next(i for i in c.get("/stock", headers=auth(a["token"])).json() if i["id"] == rice_a["id"])
+    assert ra["name"] == "Basmati Rice" and ra["reorder_level"] == 60
+    assert "chawal" in ra["aliases"] and "basmati rice" in ra["aliases"], ra["aliases"]
+    assert c.post(f"/item/{rice_a['id']}/edit", headers=auth(b["token"]),
+                  json={"name": "Hijack"}).status_code == 404
+
+    # clearing entries is scoped, counts what it removed, and leaves items alone
+    before = c.get("/me", headers=auth(a["token"])).json()["entries"]
+    assert before > 0
+    assert c.post("/entries/clear", headers=auth(a["token"]), json={"scope": "bogus"}).status_code == 400
+    r = c.post("/entries/clear", headers=auth(a["token"]), json={"scope": "all"}).json()
+    assert r["cleared"] == before and r["remaining"] == 0, r
+    assert len(c.get("/stock", headers=auth(a["token"])).json()) == 8, "items must survive"
+    assert c.get("/me", headers=auth(b["token"])).json()["entries"] > 0, "shop B untouched"
+
+    # deleting an item takes its history with it, and only its own shop may
+    assert c.post(f"/item/{rice_a['id']}/delete", headers=auth(b["token"])).status_code == 404
+    assert c.post(f"/item/{rice_a['id']}/delete", headers=auth(a["token"])).status_code == 200
+    assert len(c.get("/stock", headers=auth(a["token"])).json()) == 7
+
+    print("all 36 auth checks passed")
 
 
 def dialect():

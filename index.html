@@ -136,6 +136,10 @@ input.search:focus{border-color:var(--v1);box-shadow:0 0 0 3px rgba(168,85,247,.
 .sugg{text-align:right;font-size:11.5px;color:var(--mut)}
 .sugg b{display:block;font-size:18px;color:var(--v3);font-variant-numeric:tabular-nums}
 .empty{display:flex;flex-direction:column;align-items:center;gap:10px;padding:54px 20px;color:var(--mut)}
+.blank{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;
+  padding:40px 20px 26px;background:var(--surf);border:1px dashed var(--line2);border-radius:var(--r);color:var(--v3)}
+.blank b{color:var(--ink);font-size:18px;margin-top:10px}
+.blank span{color:var(--mut);font-size:13.5px;max-width:250px;margin-bottom:8px}
 
 /* pending tray: goods in on the left, goods out on the right */
 .tray{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;align-items:start}
@@ -434,6 +438,7 @@ const PATHS = {
   pencil:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
   clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   chev:'<path d="m6 9 6 6 6-6"/>',
+  trash:'<path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/>',
   logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
   wave:'<path d="M2 12h3M19 12h3"/><path d="M7 8v8M12 4v16M17 8v8"/>',
   sun:'<circle cx="12" cy="12" r="4.2"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
@@ -454,7 +459,7 @@ const T = {
       learned:n=>`अब से "${n}" याद रहेगा`,
       added:(q,u,n,t,b)=>`${q} ${u} ${n} जोड़ा गया। अब स्टॉक ${t} ${b} है।`,
       removed:(q,u,n,t,b)=>`${q} ${u} ${n} निकाला गया। अब स्टॉक ${t} ${b} है।`,
-      answer:(n,t,b)=>`${n} ${t} ${b} बचा है।`, lowMsg:c=>`${c} सामान कम हैं`, tagline:'दुकान की बात सुनकर स्टॉक',signIn:'दाखिल हों',newAcc:'नया खाता',phone:'मोबाइल नंबर',pin:'4 अंक का पिन',pin2:'पिन दोबारा',shopN:'दुकान का नाम',ownerN:'आपका नाम',enter:'अंदर जाएं',create:'खाता बनाएं',logout:'बाहर जाएं',pinBad:'दोनों पिन अलग हैं',welcome:n=>`नमस्ते, ${n}`,chooseLang:'भाषा चुनें',orLine:'या',ghint:'Google काम न करे तो ऊपर मोबाइल नंबर से दाखिल हों',heroA:'दुकान की बात',heroB:'सुनकर स्टॉक',heroSub:'बोलना भी नहीं पड़ता। फ़ोन काउंटर पर रखिए, दुकान की आम बातचीत से स्टॉक अपने आप लिखा जाएगा।',start:'शुरू करें',already:'पहले से खाता है',f1t:'काउंटर मोड',f1d:'ग्राहक से बातचीत सुनकर स्टॉक खुद पकड़ लेता है',f2t:'आपकी भाषा',f2d:'हिंदी, तेलुगु, अंग्रेज़ी — एक ही वाक्य में मिलाकर बोलिए',f3t:'बोरी, पेटी, दर्जन',f3d:'जिस यूनिट में खरीदते हैं उसी में बोलिए',f4t:'कुछ गलत नहीं लिखेगा',f4d:'पहले दिखाता है, आपके कहने पर ही स्टॉक बदलता है',f5t:'खुद सीखता है',f5d:'एक बार सही कर दीजिए, अगली बार खुद पहचान लेगा',f6t:'क्या मंगवाना है',f6d:'कम सामान की लिस्ट, बोरी-पेटी में',s1:'फ़ोन काउंटर पर रखिए',s2:'रोज़ की तरह बात कीजिए',s3:'एक टैप में सब सही',howT:'कैसे चलता है',featT:'क्या कर सकता है',account:'खाता',itemsWord:'सामान',themeLbl:'रंग बदलें',signOutQ:'बाहर जाना है?',nameShop:'दुकान का नाम रखिए',save:'सेव करें', mismatch:'गिनती मिलती नहीं'},
+      answer:(n,t,b)=>`${n} ${t} ${b} बचा है।`, lowMsg:c=>`${c} सामान कम हैं`, tagline:'दुकान की बात सुनकर स्टॉक',signIn:'दाखिल हों',newAcc:'नया खाता',phone:'मोबाइल नंबर',pin:'4 अंक का पिन',pin2:'पिन दोबारा',shopN:'दुकान का नाम',ownerN:'आपका नाम',enter:'अंदर जाएं',create:'खाता बनाएं',logout:'बाहर जाएं',pinBad:'दोनों पिन अलग हैं',welcome:n=>`नमस्ते, ${n}`,chooseLang:'भाषा चुनें',orLine:'या',ghint:'Google काम न करे तो ऊपर मोबाइल नंबर से दाखिल हों',heroA:'दुकान की बात',heroB:'सुनकर स्टॉक',heroSub:'बोलना भी नहीं पड़ता। फ़ोन काउंटर पर रखिए, दुकान की आम बातचीत से स्टॉक अपने आप लिखा जाएगा।',start:'शुरू करें',already:'पहले से खाता है',f1t:'काउंटर मोड',f1d:'ग्राहक से बातचीत सुनकर स्टॉक खुद पकड़ लेता है',f2t:'आपकी भाषा',f2d:'हिंदी, तेलुगु, अंग्रेज़ी — एक ही वाक्य में मिलाकर बोलिए',f3t:'बोरी, पेटी, दर्जन',f3d:'जिस यूनिट में खरीदते हैं उसी में बोलिए',f4t:'कुछ गलत नहीं लिखेगा',f4d:'पहले दिखाता है, आपके कहने पर ही स्टॉक बदलता है',f5t:'खुद सीखता है',f5d:'एक बार सही कर दीजिए, अगली बार खुद पहचान लेगा',f6t:'क्या मंगवाना है',f6d:'कम सामान की लिस्ट, बोरी-पेटी में',s1:'फ़ोन काउंटर पर रखिए',s2:'रोज़ की तरह बात कीजिए',s3:'एक टैप में सब सही',howT:'कैसे चलता है',featT:'क्या कर सकता है',account:'खाता',itemsWord:'सामान',themeLbl:'रंग बदलें',emptyT:'अभी दुकान खाली है',emptyB:'बोलकर या नीचे टैप करके अपना सामान जोड़िए',addFirst:'सामान जोड़ें',loadSample:'नमूना सामान भरें',editLbl:'बदलें',delLbl:'हटाएं',delQ:'यह सामान हटा दें?',reorderLbl:'कम होने पर',targetLbl:'कितना रखें',clearT:'एंट्री मिटाएं',clearDay:'आज की',clearWeek:'इस हफ्ते की',clearAll:'सब कुछ',clearQ:'मिटाई गई एंट्री वापस नहीं आएंगी',cleared:n=>`${n} एंट्री मिटाई गईं`,signOutQ:'बाहर जाना है?',nameShop:'दुकान का नाम रखिए',save:'सेव करें', mismatch:'गिनती मिलती नहीं'},
   te:{stock:'నిల్వ',alerts:'హెచ్చరికలు',counter:'కౌంటర్ మోడ్',counterOff:'దుకాణం మాట వింటూ నిల్వ రాయండి',
       counterOn:'వింటున్నాం…',pending:'చూడండి',acceptAll:'అన్నీ సరే',search:'వస్తువు వెతకండి',
       low:'తక్కువ',out:'అయిపోయింది',ok:'సరే',yes:'సరే',no:'వద్దు',order:'ఆర్డర్',history:'గత నమోదులు',
@@ -464,7 +469,7 @@ const T = {
       learned:n=>`ఇప్పటి నుండి "${n}" గుర్తుంటుంది`,
       added:(q,u,n,t,b)=>`${q} ${u} ${n} చేర్చాము. ఇప్పుడు నిల్వ ${t} ${b}.`,
       removed:(q,u,n,t,b)=>`${q} ${u} ${n} తీసేశాము. ఇప్పుడు నిల్వ ${t} ${b}.`,
-      answer:(n,t,b)=>`${n} ${t} ${b} ఉంది.`, lowMsg:c=>`${c} వస్తువులు తక్కువ`, tagline:'దుకాణం మాట వింటూ నిల్వ',signIn:'లాగిన్',newAcc:'కొత్త ఖాతా',phone:'మొబైల్ నంబర్',pin:'4 అంకెల పిన్',pin2:'పిన్ మళ్ళీ',shopN:'దుకాణం పేరు',ownerN:'మీ పేరు',enter:'లోపలికి',create:'ఖాతా సృష్టించు',logout:'బయటకు',pinBad:'రెండు పిన్‌లు వేరు',welcome:n=>`నమస్తే, ${n}`,chooseLang:'భాష ఎంచుకోండి',orLine:'లేదా',ghint:'Google పనిచెయ్యకపోతే పైన మొబైల్ నంబర్‌తో లాగిన్ అవ్వండి',heroA:'దుకాణం మాట',heroB:'వింటూ నిల్వ',heroSub:'చెప్పనవసరం లేదు. ఫోన్ కౌంటర్‌పై పెట్టండి, మామూలు మాటల నుండే నిల్వ నమోదవుతుంది.',start:'ప్రారంభించండి',already:'ఖాతా ఉంది',f1t:'కౌంటర్ మోడ్',f1d:'కస్టమర్ మాటల నుండే నిల్వ పట్టుకుంటుంది',f2t:'మీ భాష',f2d:'తెలుగు, హిందీ, ఇంగ్లీష్ — కలిపి మాట్లాడండి',f3t:'బోరి, పెట్టె, డజను',f3d:'మీరు కొనే యూనిట్‌లోనే చెప్పండి',f4t:'తప్పు రాయదు',f4d:'ముందు చూపిస్తుంది, మీరు ఒప్పుకుంటేనే మారుతుంది',f5t:'నేర్చుకుంటుంది',f5d:'ఒకసారి సరిచేస్తే, తర్వాత తనే గుర్తిస్తుంది',f6t:'ఏమి ఆర్డర్',f6d:'తక్కువ ఉన్నవి, బోరి-పెట్టెలలో',s1:'ఫోన్ కౌంటర్‌పై పెట్టండి',s2:'రోజులాగే మాట్లాడండి',s3:'ఒక్క నొక్కుతో సరి',howT:'ఎలా పనిచేస్తుంది',featT:'ఏమి చేయగలదు',account:'ఖాతా',itemsWord:'వస్తువులు',themeLbl:'రంగు మార్చు',signOutQ:'బయటకు వెళ్లాలా?',nameShop:'దుకాణానికి పేరు పెట్టండి',save:'సేవ్', mismatch:'లెక్క సరిపోలేదు'},
+      answer:(n,t,b)=>`${n} ${t} ${b} ఉంది.`, lowMsg:c=>`${c} వస్తువులు తక్కువ`, tagline:'దుకాణం మాట వింటూ నిల్వ',signIn:'లాగిన్',newAcc:'కొత్త ఖాతా',phone:'మొబైల్ నంబర్',pin:'4 అంకెల పిన్',pin2:'పిన్ మళ్ళీ',shopN:'దుకాణం పేరు',ownerN:'మీ పేరు',enter:'లోపలికి',create:'ఖాతా సృష్టించు',logout:'బయటకు',pinBad:'రెండు పిన్‌లు వేరు',welcome:n=>`నమస్తే, ${n}`,chooseLang:'భాష ఎంచుకోండి',orLine:'లేదా',ghint:'Google పనిచెయ్యకపోతే పైన మొబైల్ నంబర్‌తో లాగిన్ అవ్వండి',heroA:'దుకాణం మాట',heroB:'వింటూ నిల్వ',heroSub:'చెప్పనవసరం లేదు. ఫోన్ కౌంటర్‌పై పెట్టండి, మామూలు మాటల నుండే నిల్వ నమోదవుతుంది.',start:'ప్రారంభించండి',already:'ఖాతా ఉంది',f1t:'కౌంటర్ మోడ్',f1d:'కస్టమర్ మాటల నుండే నిల్వ పట్టుకుంటుంది',f2t:'మీ భాష',f2d:'తెలుగు, హిందీ, ఇంగ్లీష్ — కలిపి మాట్లాడండి',f3t:'బోరి, పెట్టె, డజను',f3d:'మీరు కొనే యూనిట్‌లోనే చెప్పండి',f4t:'తప్పు రాయదు',f4d:'ముందు చూపిస్తుంది, మీరు ఒప్పుకుంటేనే మారుతుంది',f5t:'నేర్చుకుంటుంది',f5d:'ఒకసారి సరిచేస్తే, తర్వాత తనే గుర్తిస్తుంది',f6t:'ఏమి ఆర్డర్',f6d:'తక్కువ ఉన్నవి, బోరి-పెట్టెలలో',s1:'ఫోన్ కౌంటర్‌పై పెట్టండి',s2:'రోజులాగే మాట్లాడండి',s3:'ఒక్క నొక్కుతో సరి',howT:'ఎలా పనిచేస్తుంది',featT:'ఏమి చేయగలదు',account:'ఖాతా',itemsWord:'వస్తువులు',themeLbl:'రంగు మార్చు',emptyT:'దుకాణం ఖాళీగా ఉంది',emptyB:'చెప్పి లేదా కింద నొక్కి వస్తువులు చేర్చండి',addFirst:'వస్తువు చేర్చండి',loadSample:'నమూనా వస్తువులు',editLbl:'మార్చు',delLbl:'తొలగించు',delQ:'ఈ వస్తువును తొలగించాలా?',reorderLbl:'తక్కువైతే',targetLbl:'ఎంత ఉంచాలి',clearT:'నమోదులు తొలగించు',clearDay:'ఈ రోజువి',clearWeek:'ఈ వారంవి',clearAll:'అన్నీ',clearQ:'తొలగించిన నమోదులు తిరిగి రావు',cleared:n=>`${n} నమోదులు తొలగించాము`,signOutQ:'బయటకు వెళ్లాలా?',nameShop:'దుకాణానికి పేరు పెట్టండి',save:'సేవ్', mismatch:'లెక్క సరిపోలేదు'},
   en:{stock:'Stock',alerts:'Alerts',counter:'Counter Mode',counterOff:'Log stock by listening to the shop',
       counterOn:'Listening…',pending:'Please check',acceptAll:'All correct',search:'Find item',
       low:'Low',out:'Out',ok:'OK',yes:'Correct',no:'No',order:'Order',history:'Recent entries',
@@ -474,7 +479,7 @@ const T = {
       learned:n=>`Will remember "${n}" from now on`,
       added:(q,u,n,t,b)=>`Added ${q} ${u} ${n}. Stock is now ${t} ${b}.`,
       removed:(q,u,n,t,b)=>`Removed ${q} ${u} ${n}. Stock is now ${t} ${b}.`,
-      answer:(n,t,b)=>`You have ${t} ${b} of ${n}.`, lowMsg:c=>`${c} items running low`, tagline:'Stock, by listening to your shop',signIn:'Sign in',newAcc:'New account',phone:'Mobile number',pin:'4-digit PIN',pin2:'PIN again',shopN:'Shop name',ownerN:'Your name',enter:'Enter',create:'Create account',logout:'Sign out',pinBad:'The two PINs do not match',welcome:n=>`Hello, ${n}`,chooseLang:'Choose language',orLine:'or',ghint:'If Google does not open, allow popups - or use the phone number above',heroA:'Your shop talks.',heroB:'It listens.',heroSub:'No commands to learn. Leave the phone on the counter and ordinary conversation becomes your stock book.',start:'Get started',already:'I have an account',f1t:'Counter Mode',f1d:'Picks up stock from what you and the customer already say',f2t:'Your language',f2d:'Hindi, Telugu, English — mixed in one sentence',f3t:'Bori, peti, dozen',f3d:'Speak in the units you actually buy in',f4t:'Never writes a guess',f4d:'It proposes; stock changes only when you agree',f5t:'Learns as you go',f5d:'Correct it once and it knows that word forever',f6t:'What to order',f6d:'Low stock, counted in sacks and cartons',s1:'Put the phone on the counter',s2:'Talk to customers as usual',s3:'One tap to approve',howT:'How it works',featT:'What it does',account:'Account',itemsWord:'items',themeLbl:'Switch theme',signOutQ:'Sign out?',nameShop:'Name your shop',save:'Save', mismatch:'Count disagrees'},
+      answer:(n,t,b)=>`You have ${t} ${b} of ${n}.`, lowMsg:c=>`${c} items running low`, tagline:'Stock, by listening to your shop',signIn:'Sign in',newAcc:'New account',phone:'Mobile number',pin:'4-digit PIN',pin2:'PIN again',shopN:'Shop name',ownerN:'Your name',enter:'Enter',create:'Create account',logout:'Sign out',pinBad:'The two PINs do not match',welcome:n=>`Hello, ${n}`,chooseLang:'Choose language',orLine:'or',ghint:'If Google does not open, allow popups - or use the phone number above',heroA:'Your shop talks.',heroB:'It listens.',heroSub:'No commands to learn. Leave the phone on the counter and ordinary conversation becomes your stock book.',start:'Get started',already:'I have an account',f1t:'Counter Mode',f1d:'Picks up stock from what you and the customer already say',f2t:'Your language',f2d:'Hindi, Telugu, English — mixed in one sentence',f3t:'Bori, peti, dozen',f3d:'Speak in the units you actually buy in',f4t:'Never writes a guess',f4d:'It proposes; stock changes only when you agree',f5t:'Learns as you go',f5d:'Correct it once and it knows that word forever',f6t:'What to order',f6d:'Low stock, counted in sacks and cartons',s1:'Put the phone on the counter',s2:'Talk to customers as usual',s3:'One tap to approve',howT:'How it works',featT:'What it does',account:'Account',itemsWord:'items',themeLbl:'Switch theme',emptyT:'Your shop is empty',emptyB:'Speak, or tap below, to add what you stock',addFirst:'Add an item',loadSample:'Load sample items',editLbl:'Edit',delLbl:'Delete',delQ:'Delete this item?',reorderLbl:'Low when below',targetLbl:'Keep up to',clearT:'Clear entries',clearDay:'Today',clearWeek:'This week',clearAll:'Everything',clearQ:'Cleared entries cannot be brought back',cleared:n=>`Cleared ${n} entries`,signOutQ:'Sign out?',nameShop:'Name your shop',save:'Save', mismatch:'Count disagrees'},
 };
 const LOCALE = {hi:'hi-IN', te:'te-IN', en:'en-IN'};
 
@@ -659,7 +664,15 @@ function render(){
     h += `<div class="tray">${side('in','in')}${side('out','out')}</div>`;
   }
 
-  if(tab === 'stock'){
+  if(tab === 'stock' && !items.length){
+    // A new shop owns nothing yet. Say so, and offer the two ways forward.
+    h += `<div class="blank">
+      ${icon('box',40)}
+      <b>${t().emptyT}</b><span>${t().emptyB}</span>
+      <button class="btn go wide" onclick="newItem()">${t().addFirst}</button>
+      <button class="btn ghost wide" onclick="loadSample()">${t().loadSample}</button>
+    </div>`;
+  } else if(tab === 'stock'){
     if(alerts.length) h += `<div class="banner">${icon('alert',17)}<span>${t().lowMsg(alerts.length)}</span></div>`;
     const rank = {out:0, low:1, ok:2};
     let n = 0;
@@ -759,10 +772,20 @@ function askQty(id){
   if(v !== null && !isNaN(parseFloat(v))) edit(id, {qty: parseFloat(v)});
 }
 
+const newItem = () => addNew(-1);          // from the empty state, with nothing heard
+
+async function loadSample(){
+  try{
+    const r = await api('/seed', {});
+    await load();
+    toast(`${r.added} ${t().itemsWord}`);
+  }catch(e){ toast(e.message); }
+}
+
 function addNew(id){
-  const m = props.find(p => p.id === id);
+  const m = id >= 0 ? props.find(p => p.id === id) : null;
   sheet(`<h3>${t().addNew}</h3>
-    <input class="search" id="nname" value="${m.heard}">
+    <input class="search" id="nname" value="${m ? m.heard : ''}" autofocus>
     <div class="chips" id="nunit">${['kg','pc','litre'].map((u,i) =>
       `<button class="${i?'':'on'}" onclick="pickUnit(this)">${u}</button>`).join('')}</div>
     <button class="btn go wide" onclick="saveNew(${id})">${t().ok}</button>`);
@@ -770,13 +793,14 @@ function addNew(id){
 const pickUnit = b => { [...b.parentNode.children].forEach(x => x.className = ''); b.className = 'on'; };
 
 async function saveNew(id){
-  const m = props.find(p => p.id === id);
+  const m = id >= 0 ? props.find(p => p.id === id) : null;
   const name = document.getElementById('nname').value.trim();
   if(!name) return;
   const unit = document.querySelector('#nunit .on').textContent;
-  const it = await api('/items', {name, base_unit: unit, heard: m.heard});
+  const it = await api('/items', {name, base_unit: unit, heard: m ? m.heard : ''});
   closeSheet();
   await load();
+  if(!m) return render();
   Object.assign(m, {action: m.direction === 'out' ? 'stock_out' : 'stock_in',
     item: {id: it.id, name: it.name, name_hi: it.name, name_te: it.name,
            base_unit: it.base_unit, packs: {}, stock: 0},
@@ -795,7 +819,65 @@ async function detail(id){
     <h3 style="font-size:14px;color:var(--mut)">${t().history}</h3>
     ${i.history.map(x=>`<div class="h ${x.qty_base<0?'neg':''}">
         <b>${x.qty_base>0?'+':''}${x.qty_base} ${i.base_unit}</b> — “${x.transcript||''}”</div>`).join('')}
-    <button class="btn wide" onclick="closeSheet()">${t().ok}</button>`);
+    <div class="acts" style="margin-top:16px">
+      <button class="btn" onclick="editItem(${i.id})">${icon('pencil',16)} ${t().editLbl}</button>
+      <button class="btn go" onclick="closeSheet()">${t().ok}</button>
+    </div>`);
+}
+
+function editItem(id){
+  const i = items.find(x => x.id === id);
+  if(!i) return;
+  sheet(`<h2 style="margin:4px 0 14px;font-size:20px">${t().editLbl}</h2>
+    <div class="fld"><label>${t().search}</label>
+      <input id="e_name" value="${i.name}"></div>
+    <div class="fld"><label>${t().reorderLbl} (${i.base_unit})</label>
+      <input id="e_low" inputmode="decimal" value="${i.reorder_level}"></div>
+    <div class="fld"><label>${t().targetLbl} (${i.base_unit})</label>
+      <input id="e_top" inputmode="decimal" value="${i.target_level}"></div>
+    <button class="big-btn" onclick="saveItem(${id})">${t().save}</button>
+    <button class="danger" onclick="deleteItem(${id})">${icon('trash',17)} ${t().delLbl}</button>`);
+}
+
+async function saveItem(id){
+  const name = document.getElementById('e_name').value.trim();
+  if(!name) return;
+  await api(`/item/${id}/edit`, {name,
+    reorder_level: parseFloat(document.getElementById('e_low').value) || 0,
+    target_level: parseFloat(document.getElementById('e_top').value) || 0});
+  closeSheet();
+  await load();
+}
+
+function deleteItem(id){
+  sheet(`<h2 style="margin:4px 0 16px;font-size:19px">${t().delQ}</h2>
+    <div class="acts"><button class="btn" onclick="closeSheet()">${t().no}</button>
+      <button class="btn go" style="background:var(--out)"
+        onclick="reallyDeleteItem(${id})">${t().delLbl}</button></div>`);
+}
+
+async function reallyDeleteItem(id){
+  await api(`/item/${id}/delete`, {});
+  closeSheet();
+  await load();
+}
+
+// Clearing entries really deletes, unlike undo which appends a reversal. It is
+// the "I was testing" button, so it asks first and says how many it removed.
+function clearSheet(){
+  const b = (scope, label) => `<button class="btn ghost wide"
+      onclick="clearEntries('${scope}')">${label}</button>`;
+  sheet(`<h2 style="margin:4px 0 6px;font-size:20px">${t().clearT}</h2>
+    <p class="quote" style="text-align:left">${t().clearQ}</p>
+    ${b('day', t().clearDay)}${b('week', t().clearWeek)}${b('all', t().clearAll)}
+    <button class="btn wide" onclick="closeSheet()">${t().no}</button>`);
+}
+
+async function clearEntries(scope){
+  const r = await api('/entries/clear', {scope});
+  closeSheet();
+  await load();
+  toast(t().cleared(r.cleared));
 }
 
 // ─── small helpers ───
@@ -1041,6 +1123,7 @@ function accountMenu(){
         <div class="msep"></div>
         <button class="mact" onclick="renameFromAccount()">${icon('pencil',17)} ${t().nameShop}</button>
         <button class="mact" onclick="toggleTheme();accountMenu()">${icon(theme==='dark'?'sun':'moon',17)} ${t().themeLbl}</button>
+        <button class="mact" onclick="closeSheet();clearSheet()">${icon('trash',17)} ${t().clearT}</button>
         <button class="mact dz" onclick="confirmSignOut()">${icon('logout',17)} ${t().logout}</button>
       </div></div>`;
   // details arrive from the server, so the menu opens instantly and fills in

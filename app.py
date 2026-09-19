@@ -94,7 +94,8 @@ CREATE INDEX IF NOT EXISTS idx_txns_shop  ON txns(shop_id);
 """
 
 # name, hi, te, base, packs, reorder, target, price, aliases, opening stock
-# Every new shop starts with this catalogue so the app is useful from minute one.
+# Offered to a new shop as a one-tap starting point - never applied automatically,
+# because an owner's stock is their own, not our sample of it.
 SEED = [
     ("Rice", "चावल", "బియ్యం", "kg", {"bori": 50, "bag": 25}, 50, 150, 58,
      ["rice", "chawal", "chaawal", "chowal", "चावल", "biyyam", "బియ్యం", "basmati"], 42),
@@ -240,7 +241,7 @@ def current_shop(authorization: str = Header(None)) -> int:
 
 
 def seed_shop(con, shop_id):
-    """Give a brand new shop the starter catalogue so it is useful immediately."""
+    """Load the sample catalogue. Only ever called from /seed, on request."""
     for n, hi, te, bu, p, r, t, pr, a, opening in SEED:
         it = con.execute(
             "INSERT INTO items (shop_id,name,name_hi,name_te,base_unit,packs,"
@@ -282,8 +283,6 @@ def register(body: dict):
         "INSERT INTO shops (shop_name,owner_name,phone,pin_hash,lang) VALUES (?,?,?,?,?)",
         (shop_name, owner, phone, hash_pin(pin), body.get("lang") or "hi"))
     shop_id = cur.lastrowid
-
-    seed_shop(con, shop_id)
     con.commit()
     con.close()
     return {"token": make_token(shop_id), "shop_name": shop_name,
@@ -386,7 +385,6 @@ def auth_google(body: dict):
         "INSERT INTO shops (shop_name,owner_name,email,google_sub,lang) VALUES (?,?,?,?,?)",
         (f"{name}", name, email or None, sub, body.get("lang") or "hi"))
     shop_id = cur.lastrowid
-    seed_shop(con, shop_id)
     con.commit()
     con.close()
     return {"token": make_token(shop_id), "shop_name": name, "owner_name": name,
@@ -579,6 +577,100 @@ def learn_alias(item_id: int, body: dict, shop: int = Depends(current_shop)):
     con.commit()
     con.close()
     return {"learned": True, "word": word}
+
+
+@app.post("/seed")
+def seed_now(shop: int = Depends(current_shop)):
+    """Load the sample catalogue on request - a quick start, and what the demo
+    uses. Refuses when the shop already has items so it cannot double up."""
+    con = db()
+    n = con.execute("SELECT COUNT(*) AS n FROM items WHERE shop_id=?", (shop,)).fetchone()["n"]
+    if n:
+        con.close()
+        raise HTTPException(409, "this shop already has items")
+    seed_shop(con, shop)
+    con.commit()
+    con.close()
+    return {"added": len(SEED)}
+
+
+@app.post("/item/{item_id}/edit")
+def edit_item(item_id: int, body: dict, shop: int = Depends(current_shop)):
+    """Rename an item or change its levels. The old name stays in the alias
+    list, so anything already recorded by voice still matches."""
+    name = (body.get("name") or "").strip()
+    if not name:
+        raise HTTPException(400, "name required")
+    try:
+        reorder = float(body.get("reorder_level") or 0)
+        target = float(body.get("target_level") or 0)
+    except (TypeError, ValueError):
+        raise HTTPException(400, "levels must be numbers")
+
+    con = db()
+    row = con.execute("SELECT aliases FROM items WHERE id=? AND shop_id=?",
+                      (item_id, shop)).fetchone()
+    if not row:
+        con.close()
+        raise HTTPException(404, "unknown item")
+    aliases = json.loads(row["aliases"])
+    if name.lower() not in (a.lower() for a in aliases):
+        aliases.append(name.lower())
+    con.execute("UPDATE items SET name=?,name_hi=?,name_te=?,aliases=?,"
+                "reorder_level=?,target_level=? WHERE id=?",
+                (name, name, name, json.dumps(aliases), reorder, target, item_id))
+    con.commit()
+    con.close()
+    return {"ok": True, "name": name}
+
+
+@app.post("/item/{item_id}/delete")
+def delete_item(item_id: int, shop: int = Depends(current_shop)):
+    """Remove an item and its history. Destructive on purpose - this is the
+    owner removing something they never stocked, not a stock correction."""
+    con = db()
+    if not con.execute("SELECT id FROM items WHERE id=? AND shop_id=?",
+                       (item_id, shop)).fetchone():
+        con.close()
+        raise HTTPException(404, "unknown item")
+    con.execute("DELETE FROM txns WHERE item_id=? AND shop_id=?", (item_id, shop))
+    con.execute("DELETE FROM items WHERE id=? AND shop_id=?", (item_id, shop))
+    con.commit()
+    con.close()
+    return {"ok": True}
+
+
+# SQLite keeps created_at as text, Postgres as a timestamptz, so let each
+# engine do its own date arithmetic rather than comparing formatted strings.
+CUTOFF = {
+    "day":  ("datetime('now','-1 day')",  "now() - interval '1 day'"),
+    "week": ("datetime('now','-7 day')",  "now() - interval '7 days'"),
+}
+
+
+@app.post("/entries/clear")
+def clear_entries(body: dict, shop: int = Depends(current_shop)):
+    """Delete stock entries for today, this week, or all of them.
+
+    This really deletes, unlike undo, which appends a reversing row. It is the
+    'I was testing / I made a mess' button, so it is deliberately separate from
+    the ledger's normal append-only behaviour and asks for confirmation in the UI.
+    """
+    scope = body.get("scope", "day")
+    if scope not in ("day", "week", "all"):
+        raise HTTPException(400, "scope must be day, week or all")
+
+    con = db()
+    n = con.execute("SELECT COUNT(*) AS n FROM txns WHERE shop_id=?", (shop,)).fetchone()["n"]
+    if scope == "all":
+        con.execute("DELETE FROM txns WHERE shop_id=?", (shop,))
+    else:
+        expr = CUTOFF[scope][1 if PG else 0]
+        con.execute(f"DELETE FROM txns WHERE shop_id=? AND created_at >= {expr}", (shop,))
+    left = con.execute("SELECT COUNT(*) AS n FROM txns WHERE shop_id=?", (shop,)).fetchone()["n"]
+    con.commit()
+    con.close()
+    return {"cleared": n - left, "remaining": left}
 
 
 @app.get("/alerts")
