@@ -100,6 +100,122 @@ it is right forever.
 
 ---
 
+## Architecture
+
+```mermaid
+flowchart TB
+  subgraph PHONE["Phone on the counter"]
+    CONV["Owner and customer talking"]
+    WSA["Web Speech API<br/>continuous · hi/te/en<br/>NO AUDIO LEAVES THE DEVICE"]
+    UI["One HTML file<br/>dashboard · tray · alerts"]
+    TTS["Spoken reply"]
+    CONV --> WSA --> UI --> TTS
+  end
+
+  subgraph API["FastAPI on Render"]
+    PARSE["POST /parse<br/>READ ONLY"]
+    COMMIT["POST /commit<br/>the only write"]
+    READ["GET /stock · /alerts"]
+    subgraph NLU["Four-slot scanner · no ML"]
+      direction TB
+      N1["1 quantity<br/>digits + number words"]
+      N2["2 unit<br/>kilo · bori · peti · dozen"]
+      N3["3 direction<br/>IN / OUT / question"]
+      N4["4 item<br/>fuzzy + phonetic match"]
+      N5["confidence gate<br/>85 accept · 60 ask · below discard"]
+      N1 --> N2 --> N3 --> N4 --> N5
+    end
+    PARSE --> NLU
+  end
+
+  subgraph DB["PostgreSQL"]
+    T1[("shops<br/>hashed PIN · google id")]
+    T2[("items<br/>aliases · pack sizes")]
+    T3[("txns — APPEND ONLY<br/>keeps the sentence said")]
+  end
+
+  UI -- "text + language" --> PARSE
+  PARSE -. "proposals, nothing written" .-> TRAY["Review tray<br/>approve in bulk"]
+  TRAY -- "owner approved" --> COMMIT
+  UI --> READ
+  N4 -- "alias lookup" --> T2
+  COMMIT --> T3
+  COMMIT -- "unit to base" --> T2
+  READ -- "SUM(qty_base)" --> T3
+  READ --> T1
+```
+
+Speech turns to text on the phone, text becomes proposals on the server, and only a human
+tap turns a proposal into a ledger row.
+
+---
+
+## Why these choices
+
+| Layer | Choice | Why |
+|---|---|---|
+| Speech to text | Web Speech API | Free, no key, no model download, sub-second. Ships in Chrome and Safari with `hi-IN`, `te-IN`, `en-IN`. Continuous mode is what makes passive listening possible at zero cost. |
+| Understanding | rapidfuzz + jellyfish | Deterministic, testable, explainable. Fuzzy distance plus phonetic codes, no training. |
+| Backend | FastAPI | Little boilerplate, automatic API docs, and Python is where the NLP libraries live. |
+| Database | PostgreSQL / SQLite | SQLite locally so there is nothing to install; Postgres in production so data survives restarts. One env var switches them. |
+| Frontend | Vanilla JS, one file | Four screens and one list. React's value is complex state and there isn't any — dropping it removed a build step, a lockfile and ~1,400 dependency files. |
+| Hosting | Render | Free tier with a *real managed database*, HTTPS by default (the Web Speech API refuses plain HTTP), and a Singapore region. One service serves both halves, so there is no CORS. |
+
+Six dependencies. No Node, no build step, no framework.
+
+### Deployment
+
+One Render web service plus a managed Postgres 16 instance, both in Singapore. FastAPI
+serves the static HTML and the API from the same origin. Pushing to `main` deploys;
+`render.yaml` keeps the configuration reproducible. `SECRET_KEY` and `DATABASE_URL` are
+environment variables — no secret is committed.
+
+**Known limit:** the free instance sleeps after ~15 minutes idle and takes ~50s to wake.
+Open the URL a couple of minutes before demoing.
+
+---
+
+## How it compares
+
+| Product | What it is | Input model |
+|---|---|---|
+| Vyapar | GST billing + inventory for Indian SMBs | Forms and typing; voice where present is dictation into a field |
+| myBillBook | Billing and inventory, regional-language UI | Forms and typing |
+| Khatabook / OkCredit | Digital *udhaar* ledger — credit, not stock | Typing; a different problem |
+| Zoho Inventory | Full inventory suite | English, desktop-shaped, built for a business user not a counter |
+| Alexa / Assistant skills | Voice stock entry | Wake word plus a well-formed command |
+| **SunoBolo** | Voice inventory for one counter | **Overhears ordinary conversation. Nothing to press, no command to learn.** |
+
+Every product above is an *interface you operate*. This one is an *observer*. They ask the
+owner to stop and tell the app what happened; we take what the shop already said.
+
+Two things none of them do: the lexicon **learns from corrections** — say "tamatar" once,
+correct it once, and it is right forever — and trade units are **per item**, so "two bori"
+is 100 kg of rice but 50 kg of sugar.
+
+---
+
+## Problems we hit
+
+Each was found by measuring, not guessing.
+
+| Problem | Cause and fix |
+|---|---|
+| Every delivery logged as a sale | `do` means both "two" and "give". It sat in the OUT verbs, so *"do kilo chawal aaya"* became a sale. Removed — in a shop it is overwhelmingly the number. |
+| Long sentences hid misspellings | `chowal` scores **83** against `chawal`, but *"paanch kilo chowal aaya"* scores **34** — extra words dilute it. Switched to comparing word by word. |
+| Tomato became wheat flour | `tamatar`→`aata` scores 72.7 — identical to the real mishearing `sawal`→`chawal`. Fuzzy score alone cannot separate them; **length ratio** can (0.57 vs 0.83). Verified on 16 pairs. |
+| Weather chatter became a proposal | *"aaj bahut garmi hai"* scored exactly 60 against Sugar and the gate was `< 60`. Counter Mode now needs 75 — it hears a whole room, so it must be stricter than a button press. |
+| Google sign-in failed silently | Chrome fires `onerror` then `onend`, and `onend` was closing the fallback `onerror` had just opened. Plus the deployed domain was missing from Google's origin allowlist. |
+| A deploy that would have failed | `httpx` was imported but never declared in `requirements.txt`. It worked locally only because it was installed by hand. |
+
+**The honest limitation:** passive extraction from conversation is meaningfully less
+accurate than dictation — realistically 50–65% against roughly 90%. The design absorbs
+that rather than hiding it: nothing auto-commits, low-confidence results are discarded
+rather than shown, and Command Mode is always available. The novel capability is novel;
+the failure mode is an ordinary voice inventory app.
+
+---
+
 ## Files
 
 | File | Lines | Does |
