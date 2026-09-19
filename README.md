@@ -11,6 +11,13 @@ That speech is a complete transaction log that currently evaporates. We capture 
 
 ---
 
+## Live
+
+**https://sunobolo.onrender.com** · source: https://github.com/gourishetti-ruthvik/sunobolo
+
+Free instance, so the first request after a quiet spell takes ~50s to wake.
+Open it once a couple of minutes before you demo.
+
 ## Run it locally
 
 Needs **Python 3.10+**. Nothing else — no Node, no build step, no database server.
