@@ -246,12 +246,16 @@ def login(body: dict):
 @app.get("/me")
 def me(shop: int = Depends(current_shop)):
     con = db()
-    row = con.execute("SELECT shop_name,owner_name,phone,lang FROM shops WHERE id=?",
-                      (shop,)).fetchone()
-    con.close()
+    row = con.execute("SELECT shop_name,owner_name,phone,email,lang,created_at"
+                      " FROM shops WHERE id=?", (shop,)).fetchone()
     if not row:
+        con.close()
         raise HTTPException(401, "please sign in again")
-    return dict(row)
+    out = dict(row)
+    out["items"] = con.execute("SELECT COUNT(*) FROM items WHERE shop_id=?", (shop,)).fetchone()[0]
+    out["entries"] = con.execute("SELECT COUNT(*) FROM txns WHERE shop_id=?", (shop,)).fetchone()[0]
+    con.close()
+    return out
 
 
 @app.get("/config")

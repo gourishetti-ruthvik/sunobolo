@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: sunobolo
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m uvicorn app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /healthz
+    envVars:
+      # Set this so sessions survive a restart; without it every restart
+      # signs everyone out (a new random key is generated each boot).
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PYTHON_VERSION
+        value: "3.11"

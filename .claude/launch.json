@@ -1,6 +1,18 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "sunobolo", "runtimeExecutable": "python", "runtimeArgs": ["-m", "uvicorn", "app:app", "--port", "8000"], "port": 8000 }
+    {
+      "name": "sunobolo",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "uvicorn",
+        "app:app",
+        "--reload",
+        "--port",
+        "8000"
+      ],
+      "port": 8000
+    }
   ]
 }
