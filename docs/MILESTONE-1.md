@@ -1,5 +1,5 @@
 # Milestone 1 — Complete Submission
-# BoloStock — Voice-Based Inventory Management for Small Businesses
+# SunoBolo — Voice-Based Inventory Management Using Conversational Speech
 
 **Date:** 19 September 2026 · **Team:** Solo build
 **Contents:** 1.1 Requirements · 1.2 Functional Requirements · 1.3 Technical Design & Architecture · 1.4 UI/UX Design & Prototype
@@ -10,12 +10,12 @@
 
 Every voice inventory product on the market works as a **command interface**: you press a
 button and issue a structured instruction — *"add twenty kilo rice."* That is still data
-entry, performed with your mouth instead of your thumbs. BoloStock inverts this. The phone
+entry, performed with your mouth instead of your thumbs. SunoBolo inverts this. The phone
 sits on the shop counter and **listens to the shop**, extracting stock movements from the
 ordinary conversation between owner and customer — sentences that were never addressed to
 the app at all. A kirana shop already says every transaction out loud, usually twice: once
 when the customer asks and once when the owner confirms. That speech is a complete,
-free transaction log that currently evaporates into the air. **BoloStock captures it.**
+free transaction log that currently evaporates into the air. **SunoBolo captures it.**
 
 ---
 ---

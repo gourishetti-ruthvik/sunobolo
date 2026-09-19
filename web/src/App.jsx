@@ -93,7 +93,7 @@ function Login({ t, lang, setLang, onDone }) {
   return (
     <div className="login">
       <div className="logo">🎤</div>
-      <h1>BoloStock</h1>
+      <h1>SunoBolo</h1>
       <p className="tag">बोलिए, स्टॉक अपने आप</p>
       <div className="langs big">
         {LANGS.map((l) => (

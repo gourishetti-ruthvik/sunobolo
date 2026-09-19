@@ -1,4 +1,4 @@
-# BoloStock — Voice-Based Inventory Management
+# SunoBolo — Voice-Based Inventory Management
 
 Speak your stock in Hindi, Telugu or English. No typing, no software terms.
 
