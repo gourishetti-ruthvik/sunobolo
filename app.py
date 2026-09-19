@@ -33,9 +33,13 @@ DB = os.environ.get("DB_PATH", "sunobolo.db")
 # restart just signs everyone out. Set SECRET_KEY in the environment to keep
 # sessions across restarts, and before ever running more than one instance.
 SECRET = os.environ.get("SECRET_KEY") or secrets.token_hex(16)
-# Public value - it is meant to be visible in the page. Sign-in with Google is
-# simply hidden when this is unset, so the app runs fine without it.
-GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
+# A Google client id is PUBLIC by design - it is visible in the page source of
+# every site that uses it. What actually protects it is the origin allowlist in
+# the Google console, not secrecy, so keeping it here is fine. The environment
+# variable overrides it for other deployments.
+DEFAULT_GOOGLE_CLIENT_ID = (
+    "781079652989-pgjep3a8i2llgt4476mvqaefk4ra9gk2.apps.googleusercontent.com")
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", DEFAULT_GOOGLE_CLIENT_ID).strip()
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS shops (
@@ -365,8 +369,15 @@ def stock_rows(shop):
 
 
 @app.get("/")
+@app.head("/")                          # some hosts health-check with HEAD
 def home():
     return FileResponse("index.html")
+
+
+@app.get("/healthz")
+def healthz():
+    """Cheap liveness check that does not touch the database."""
+    return {"ok": True}
 
 
 @app.get("/stock")

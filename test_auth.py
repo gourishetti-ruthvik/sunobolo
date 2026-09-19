@@ -5,6 +5,9 @@ able to see or touch another shop's stock.
 """
 import os
 os.environ["DB_PATH"] = "test_auth.db"
+# Force the unconfigured case so we test that Google sign-in degrades cleanly,
+# not whatever client id happens to be set in this environment.
+os.environ["GOOGLE_CLIENT_ID"] = ""
 if os.path.exists("test_auth.db"):
     os.remove("test_auth.db")
 
