@@ -63,7 +63,19 @@ def run():
     # ...and in Counter Mode it is dropped silently instead, since nobody asked.
     assert parse("char kilo tamatar dena", ITEMS, "counter") == []
 
-    print(f"all {len(CASES) + 10} checks passed")
+    # "sab nikal do" - a clear instruction with no item named. Must ask WHICH
+    # item, not claim we do not recognise the word. ("do" here is the imperative
+    # helper, not the number 2; "sab" is a quantity, not an item name.)
+    n = parse("sab nikal do", ITEMS, "command")
+    assert n and n[0]["action"] == "need_item", n
+    assert n[0]["direction"] == "out" and n[0]["all"] is True, n
+
+    # ...and with an item named, "all" means the whole shelf.
+    ITEMS[0]["stock"] = 40
+    a = parse("sab chawal nikal do", ITEMS, "command")
+    assert a[0]["qty"] == 40 and a[0]["qty_base"] == -40, a
+
+    print(f"all {len(CASES) + 14} checks passed")
 
 
 if __name__ == "__main__":

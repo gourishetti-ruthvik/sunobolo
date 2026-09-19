@@ -50,6 +50,23 @@ input.search{width:100%;padding:13px 15px;border-radius:var(--r);border:1px soli
 .pill.low{background:#ffedd5;color:#9a3412}.pill.out{background:#fee2e2;color:#991b1b}
 .sugg{text-align:right;font-size:12px;color:var(--mut)}.sugg b{display:block;font-size:18px;color:var(--brand)}
 
+/* pending tray: two columns, goods in on the left, goods out on the right */
+.tray{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;align-items:start}
+.col h4{margin:0 0 7px;font-size:12px;font-weight:700;text-align:center;padding:7px 4px;border-radius:99px}
+.col.in h4{background:#dcfce7;color:#166534}
+.col.out h4{background:#fee2e2;color:#991b1b}
+.col .prop{padding:10px;margin-bottom:8px;border-left-width:4px}
+.col .prop .quote{font-size:11px;margin-bottom:6px}
+.col .step{gap:6px;margin:8px 0}
+.col .step button{width:34px;height:34px;font-size:19px}
+.col .qv{min-width:44px}.col .qv b{font-size:23px}.col .qv em{font-size:11px}
+.col .chips{gap:5px;margin-top:6px}
+.col .chips button{padding:6px 9px;font-size:12px}
+.col .acts{gap:6px;margin-top:9px}
+.col .btn{padding:9px 4px;font-size:13px}
+.col .search{padding:9px 11px;font-size:14px;margin-bottom:8px}
+.none{text-align:center;color:var(--mut);padding:16px;font-size:13px;border:1px dashed var(--line);border-radius:var(--r)}
+
 /* proposal cards */
 .prop{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--brand);
       border-radius:var(--r);padding:14px;margin-bottom:9px}
@@ -121,6 +138,7 @@ const T = {
       low:'कम है',out:'खत्म',ok:'ठीक है',yes:'सही है',no:'नहीं',order:'मंगवाएं',history:'पिछली एंट्री',
       maybe:'शायद…',speak:'बोलिए',type:'लिखकर बताइए',none:'अभी कुछ नहीं',
       unknown:'यह सामान हमें नहीं पता',addNew:'नया सामान जोड़ें',qtyPrompt:'कितना?',
+      whichItem:'किस सामान का?',allOf:'सब',inCol:'आया',outCol:'गया',swap:'दूसरी तरफ',
       learned:n=>`अब से "${n}" याद रहेगा`,
       added:(q,u,n,t,b)=>`${q} ${u} ${n} जोड़ा गया। अब स्टॉक ${t} ${b} है।`,
       removed:(q,u,n,t,b)=>`${q} ${u} ${n} निकाला गया। अब स्टॉक ${t} ${b} है।`,
@@ -130,6 +148,7 @@ const T = {
       low:'తక్కువ',out:'అయిపోయింది',ok:'సరే',yes:'సరే',no:'వద్దు',order:'ఆర్డర్',history:'గత నమోదులు',
       maybe:'బహుశా…',speak:'చెప్పండి',type:'టైప్ చేయండి',none:'ఇప్పుడు ఏమీ లేదు',
       unknown:'ఈ వస్తువు మాకు తెలియదు',addNew:'కొత్త వస్తువు చేర్చండి',qtyPrompt:'ఎంత?',
+      whichItem:'ఏ వస్తువు?',allOf:'అన్ని',inCol:'వచ్చింది',outCol:'పోయింది',swap:'అవతలికి',
       learned:n=>`ఇప్పటి నుండి "${n}" గుర్తుంటుంది`,
       added:(q,u,n,t,b)=>`${q} ${u} ${n} చేర్చాము. ఇప్పుడు నిల్వ ${t} ${b}.`,
       removed:(q,u,n,t,b)=>`${q} ${u} ${n} తీసేశాము. ఇప్పుడు నిల్వ ${t} ${b}.`,
@@ -138,6 +157,9 @@ const T = {
       counterOn:'Listening…',pending:'Please check',acceptAll:'All correct',search:'Find item',
       low:'Low',out:'Out',ok:'OK',yes:'Correct',no:'No',order:'Order',history:'Recent entries',
       maybe:'Maybe…',speak:'Speak',type:'Type instead',none:'Nothing right now',
+      unknown:"We don't stock this",addNew:'Add as new item',qtyPrompt:'How many?',
+      whichItem:'Which item?',allOf:'All',inCol:'IN',outCol:'OUT',swap:'Other side',
+      learned:n=>`Will remember "${n}" from now on`,
       added:(q,u,n,t,b)=>`Added ${q} ${u} ${n}. Stock is now ${t} ${b}.`,
       removed:(q,u,n,t,b)=>`Removed ${q} ${u} ${n}. Stock is now ${t} ${b}.`,
       answer:(n,t,b)=>`You have ${t} ${b} of ${n}.`, lowMsg:c=>`${c} items running low`},
@@ -226,7 +248,11 @@ async function propose(text, source){
     if(m.action === 'query_item'){ say(t().answer(nameOf(m.item), m.item.stock, m.item.base_unit)); continue; }
     if(m.action === 'query_low'){ say(t().lowMsg(alerts.length)); go('alerts'); continue; }
     m.id = nextId++; m.source = source;
-    if(m.action !== 'unknown_item') m.direction = m.action==='stock_out' ? 'out' : 'in';
+    // Only a real stock move derives its direction from the action. unknown_item
+    // and need_item already carry the direction the parser worked out from the
+    // verb, and overwriting it put "sab NIKAL do" in the incoming column.
+    if(m.action === 'stock_in' || m.action === 'stock_out')
+      m.direction = m.action === 'stock_out' ? 'out' : 'in';
     props.unshift(m);
   }
   render();
@@ -270,7 +296,14 @@ function render(){
             <span>📋 ${t().pending} (${props.length})</span>
             ${props.some(p=>p.sure) ? `<button class="btn go" style="flex:0 0 auto;padding:9px 14px;
                font-size:14px;white-space:nowrap" onclick="acceptAll()">${t().acceptAll}</button>` : ''}</div>`;
-    h += props.map(card).join('');
+    // Split by direction. Goods coming in and goods going out are different
+    // jobs, and mixing them in one list made a batch impossible to scan.
+    const side = (dir, cls) => {
+      const mine = props.filter(p => p.direction === dir);
+      return `<div class="col ${cls}"><h4>${dir==='in' ? '↓ '+t().inCol : '↑ '+t().outCol} (${mine.length})</h4>
+        ${mine.map(card).join('') || `<div class="none">—</div>`}</div>`;
+    };
+    h += `<div class="tray">${side('in','in')}${side('out','out')}</div>`;
   }
 
   if(tab === 'stock'){
@@ -295,7 +328,8 @@ function render(){
 /* A proposal card. Everything on it is correctable with a tap - that is both
    the correction feature and the safety net for a fuzzy match being wrong. */
 function card(m){
-  if(m.action === 'unknown_item') return unknownCard(m);
+  if(m.action === 'unknown_item') return pickCard(m, '❓ ' + m.heard, t().unknown, true);
+  if(m.action === 'need_item')    return pickCard(m, '📦 ' + (m.all ? t().allOf : m.qty), t().whichItem, false);
   const units = [m.item.base_unit, ...Object.keys(m.item.packs)];
   return `<div class="prop ${m.sure?'':'unsure'}">
     <span class="score ${m.sure?'':'w'}">${Math.round(m.confidence)}%</span>
@@ -311,25 +345,27 @@ function card(m){
       <button onclick="edit(${m.id},{qty:${m.qty}+1})">+</button></div>
     <div class="chips">${units.map(u=>`<button class="${u===m.unit?'on':''}"
        onclick="edit(${m.id},{unit:'${u}'})">${u}</button>`).join('')}</div>
-    <div class="chips dir">
-      <button class="${m.direction==='in'?'on i':''}" onclick="edit(${m.id},{direction:'in'})">↓ IN</button>
-      <button class="${m.direction==='out'?'on o':''}" onclick="edit(${m.id},{direction:'out'})">↑ OUT</button></div>
+    <div class="chips"><button style="flex:1" onclick="edit(${m.id},{direction:'${
+        m.direction==='in'?'out':'in'}'})">⇄ ${t().swap}</button></div>
     <div class="acts"><button class="btn" onclick="reject(${m.id})">${t().no}</button>
       <button class="btn go" onclick="accept(${m.id})">${t().yes}</button></div></div>`;
 }
 
-/* We heard a word but the shop does not stock anything like it. Never guess -
-   offer the two honest options: find the right item, or add a new one. */
-function unknownCard(m){
+/* Two different failures, one card.
+     unknown_item - we heard a word and stock nothing like it -> offer to ADD it
+     need_item    - a clear instruction with no item named ("sab nikal do")
+                    -> just ask which item; there is nothing to add.
+   Never guess in either case. */
+function pickCard(m, title, subtitle, canAdd){
   return `<div class="prop unsure">
     <p class="quote">“${m.transcript}”</p>
-    <div style="font-size:20px;font-weight:700">❓ ${m.heard}</div>
-    <div style="font-size:13px;color:var(--mut);margin:4px 0 2px">${t().unknown}</div>
-    <input class="search" style="margin-top:10px" placeholder="🔍 ${t().search}"
-           oninput="searchFor(${m.id}, this.value)">
+    <div style="font-size:18px;font-weight:700">${title}</div>
+    <div style="font-size:12px;color:var(--mut);margin:4px 0 2px">${subtitle}</div>
+    <input class="search" style="margin-top:9px" placeholder="🔍 ${t().search}"
+           oninput="searchFor(${m.id}, this.value)" onfocus="searchFor(${m.id},'')">
     <div class="chips" id="res${m.id}"></div>
     <div class="acts"><button class="btn" onclick="reject(${m.id})">${t().no}</button>
-      <button class="btn go" onclick="addNew(${m.id})">${t().addNew}</button></div></div>`;
+      ${canAdd ? `<button class="btn go" onclick="addNew(${m.id})">${t().addNew}</button>` : ''}</div></div>`;
 }
 
 async function searchFor(id, q){
@@ -352,8 +388,11 @@ async function pickItem(id, itemId){
     if(r.learned) toast(t().learned(m.heard));
   }
   Object.assign(m, {action: m.direction === 'out' ? 'stock_out' : 'stock_in',
-    item: it, unit: it.packs[m.unit] ? m.unit : it.base_unit,
-    confidence: 100, sure: true, candidates: []});
+    item: it, confidence: 100, sure: true, candidates: [],
+    // "sab nikal do" then picking Rice means all the rice actually on the shelf
+    qty: (m.all && m.direction === 'out') ? Math.max(0, it.stock) : m.qty,
+    unit: (m.all && m.direction === 'out') ? it.base_unit
+          : (it.packs[m.unit] ? m.unit : it.base_unit)});
   render();
 }
 

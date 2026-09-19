@@ -46,6 +46,12 @@ NUMBERS = {
 }
 MULTIPLIERS = {"sau", "hazaar", "nooru", "veyyi"}
 
+# "sab nikal do" = take out ALL of it. These are quantities, not item names -
+# without this, "sab" went to the item matcher and the app asked what "sab" was.
+ALL_WORDS = {"sab", "sabhi", "saara", "sara", "poora", "pura", "puri", "सब", "सारा",
+             "anni", "antha", "motham", "అన్ని", "మొత్తం",
+             "all", "everything", "whole", "full"}
+
 # ── Units that mean the same everywhere ──────────────────────────────────────
 # unit spoken -> (base unit it converts to, how many base units it is worth)
 UNITS = {
@@ -68,13 +74,15 @@ UNITS = {
 IN_WORDS = {"aaya", "aayi", "aaye", "aya", "liya", "kharida", "khareeda",
             "mangwaya", "mila", "आया", "लिया",
             "vacchindi", "vachindi", "konnanu", "techanu", "వచ్చింది",
+            "aao", "aaja", "आयी", "आये",
             "came", "bought", "received", "add", "added", "in"}
 
 # NOTE: "do" is deliberately NOT here. In a shop it almost always means the
 # number 2 ("do kilo"), not "de do" / give. Leaving it in made every
 # "do kilo chawal aaya" register as a sale.
-OUT_WORDS = {"dena", "de", "diya", "becha", "bech", "gaya", "gayi",
-            "nikala", "chahiye", "देना", "बेचा", "गया",
+OUT_WORDS = {"dena", "de", "diya", "becha", "bech", "bechna", "gaya", "gayi",
+            "nikal", "nikala", "nikalo", "nikaal", "hata", "hatao", "kam",
+            "chahiye", "देना", "बेचा", "गया", "निकाल", "निकालो",
             "kavali", "ammanu", "ammesanu", "ichanu", "poyindi", "కావాలి", "అమ్మాను",
             "sold", "sell", "give", "need", "out", "remove"}
 
@@ -177,7 +185,7 @@ def content_words(text):
     filler all removed. A verb like 'dena' must never be compared against an
     item name, and must not show up when we ask 'add this new item?'."""
     skip = NUMBERS.keys() | UNITS.keys() | STOPWORDS | IN_WORDS | OUT_WORDS \
-        | QUERY_WORDS | LOW_WORDS
+        | QUERY_WORDS | LOW_WORDS | ALL_WORDS
     return [w for w in text.split() if len(w) >= 3 and w not in skip]
 
 
@@ -227,6 +235,8 @@ def parse(text, items, mode="command"):
 
     direction = find_direction(tokens, "out" if mode == "counter" else "in")
     floor = COUNTER_FLOOR if mode == "counter" else SUGGEST
+    take_all = bool(tokens & ALL_WORDS)          # "sab nikal do" = all of it
+    said_action = bool(tokens & (IN_WORDS | OUT_WORDS)) or take_all
 
     moves = []
     for fragment in SPLITTERS.split(text):
@@ -234,21 +244,36 @@ def parse(text, items, mode="command"):
         ranked = match_item(fragment, items)
         if not ranked or ranked[0][0] < floor:
             # Counter Mode stays silent - it is listening to a whole shop and
-            # most of what it hears is not about stock. But when the user spoke
-            # ON PURPOSE we must not guess, and we must not swallow it either:
-            # say we do not know the item and let them search or add it.
+            # most of what it hears is not about stock. When the user spoke ON
+            # PURPOSE we must neither guess nor swallow it, and the two failures
+            # are different: an unrecognised WORD means offer to add an item,
+            # but a clear instruction with NO item named ("sab nikal do") means
+            # ask which item. Saying "we don't know this item" to that is just
+            # confusing - there was no item in the sentence to not know.
             heard = content_words(fragment)
-            if heard and mode != "counter":
+            if mode == "counter":
+                continue
+            if heard:
                 moves.append({"action": "unknown_item",
                               "heard": " ".join(heard),
                               "qty": to_number(words) or 1,
                               "direction": direction,
+                              "all": take_all,
+                              "transcript": text})
+            elif said_action:
+                moves.append({"action": "need_item",
+                              "qty": to_number(words) or 1,
+                              "direction": direction,
+                              "all": take_all,
                               "transcript": text})
             continue
 
         score, item = ranked[0]
         unit, factor = find_unit(words, item)
         qty = to_number(words) or 1
+        if take_all and direction == "out":
+            # "sab chawal nikal do" - clear out whatever is actually on the shelf
+            qty, unit, factor = max(0, item.get("stock", 0)), item["base_unit"], 1
         moves.append({
             "action": "stock_" + direction,
             "item": item,
