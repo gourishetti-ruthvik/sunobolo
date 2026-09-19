@@ -142,7 +142,7 @@ const T = {
       learned:n=>`अब से "${n}" याद रहेगा`,
       added:(q,u,n,t,b)=>`${q} ${u} ${n} जोड़ा गया। अब स्टॉक ${t} ${b} है।`,
       removed:(q,u,n,t,b)=>`${q} ${u} ${n} निकाला गया। अब स्टॉक ${t} ${b} है।`,
-      answer:(n,t,b)=>`${n} ${t} ${b} बचा है।`, lowMsg:c=>`${c} सामान कम हैं`},
+      answer:(n,t,b)=>`${n} ${t} ${b} बचा है।`, lowMsg:c=>`${c} सामान कम हैं`, mismatch:'गिनती मिलती नहीं'},
   te:{stock:'నిల్వ',alerts:'హెచ్చరికలు',counter:'కౌంటర్ మోడ్',counterOff:'దుకాణం మాట వింటూ నిల్వ రాయండి',
       counterOn:'వింటున్నాం…',pending:'చూడండి',acceptAll:'అన్నీ సరే',search:'వస్తువు వెతకండి',
       low:'తక్కువ',out:'అయిపోయింది',ok:'సరే',yes:'సరే',no:'వద్దు',order:'ఆర్డర్',history:'గత నమోదులు',
@@ -152,7 +152,7 @@ const T = {
       learned:n=>`ఇప్పటి నుండి "${n}" గుర్తుంటుంది`,
       added:(q,u,n,t,b)=>`${q} ${u} ${n} చేర్చాము. ఇప్పుడు నిల్వ ${t} ${b}.`,
       removed:(q,u,n,t,b)=>`${q} ${u} ${n} తీసేశాము. ఇప్పుడు నిల్వ ${t} ${b}.`,
-      answer:(n,t,b)=>`${n} ${t} ${b} ఉంది.`, lowMsg:c=>`${c} వస్తువులు తక్కువ`},
+      answer:(n,t,b)=>`${n} ${t} ${b} ఉంది.`, lowMsg:c=>`${c} వస్తువులు తక్కువ`, mismatch:'లెక్క సరిపోలేదు'},
   en:{stock:'Stock',alerts:'Alerts',counter:'Counter Mode',counterOff:'Log stock by listening to the shop',
       counterOn:'Listening…',pending:'Please check',acceptAll:'All correct',search:'Find item',
       low:'Low',out:'Out',ok:'OK',yes:'Correct',no:'No',order:'Order',history:'Recent entries',
@@ -162,7 +162,7 @@ const T = {
       learned:n=>`Will remember "${n}" from now on`,
       added:(q,u,n,t,b)=>`Added ${q} ${u} ${n}. Stock is now ${t} ${b}.`,
       removed:(q,u,n,t,b)=>`Removed ${q} ${u} ${n}. Stock is now ${t} ${b}.`,
-      answer:(n,t,b)=>`You have ${t} ${b} of ${n}.`, lowMsg:c=>`${c} items running low`},
+      answer:(n,t,b)=>`You have ${t} ${b} of ${n}.`, lowMsg:c=>`${c} items running low`, mismatch:'Count disagrees'},
 };
 const LOCALE = {hi:'hi-IN', te:'te-IN', en:'en-IN'};
 
@@ -313,7 +313,8 @@ function render(){
       `<button class="row ${i.status}" onclick="detail(${i.id})">
          <div class="nm">${nameOf(i)}<span>${i.name}</span></div>
          <div class="qt"><b>${i.stock}</b> <em>${i.base_unit}</em>
-           <div class="pill ${i.status}">${i.status==='out'?t().out:i.status==='low'?t().low:t().ok}</div></div>
+           <div class="pill ${i.status}">${i.mismatch ? '⚠ ' + t().mismatch
+             : i.status==='out'?t().out : i.status==='low'?t().low : t().ok}</div></div>
        </button>`).join('') + '</div>';
   } else {
     h += alerts.length ? '<div class="list">' + alerts.map(a =>

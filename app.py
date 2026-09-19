@@ -115,6 +115,10 @@ def stock_rows():
         d["stock"] = round(d["stock"], 2)
         d["status"] = ("out" if d["stock"] <= 0
                        else "low" if d["stock"] <= d["reorder_level"] else "ok")
+        # Negative stock is allowed on purpose - the shelf and the book really do
+        # drift apart in a shop. But it must be SHOWN as a mismatch, not left
+        # looking like a broken number.
+        d["mismatch"] = d["stock"] < 0
         out.append(d)
     return out
 
