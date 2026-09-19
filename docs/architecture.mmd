@@ -1,0 +1,60 @@
+%% BoloStock — System Architecture (Milestone 1.3)
+%% Render at https://mermaid.live or via `mmdc -i architecture.mmd -o architecture.png`
+flowchart TB
+    subgraph Device["📱 Owner's Phone — Browser (HTTPS)"]
+        MIC["Mic button<br/>idle → listening → confirm"]
+        WSA["Web Speech API<br/>lang = hi-IN / te-IN / en-IN<br/>free · no key · sub-second"]
+        UI["React UI<br/>Dashboard · Confirm card<br/>Alerts · Item detail"]
+        TTS["Speech Synthesis<br/>spoken reply, user's language"]
+        MIC --> WSA --> UI
+        UI --> TTS
+    end
+
+    subgraph API["⚙️ FastAPI on Render"]
+        AUTH["POST /api/login<br/>shop + hashed PIN"]
+        PARSE["POST /api/parse<br/>READ-ONLY · never writes"]
+        TXN["POST /api/transactions<br/>the only write path"]
+        STOCK["GET /api/stock"]
+        ALERT["GET /api/alerts<br/>low stock + reorder qty"]
+
+        subgraph NLU["NLU Pipeline — rules + fuzzy, no ML, no training"]
+            direction TB
+            N1["1 · Normalise"]
+            N2["2 · Direction<br/>verb lexicon → IN / OUT / QUERY"]
+            N3["3 · Quantity<br/>digits + number-word map<br/>bees=20 · teen sau=300 · dhai=2.5"]
+            N4["4 · Unit<br/>kilo/bori/dozen/peti/tin → base"]
+            N5["5 · Item<br/>rapidfuzz token_set_ratio<br/>vs multilingual alias table"]
+            N6["6 · Price<br/>rupay / rupees / ₹"]
+            N7["7 · Confidence gate<br/>≥85 auto · 60-85 suggest · &lt;60 search"]
+            N1 --> N2 --> N3 --> N4 --> N5 --> N6 --> N7
+        end
+        PARSE --> NLU
+    end
+
+    subgraph DB["🗄️ PostgreSQL (Render managed)"]
+        T1[("shops<br/>name · pin_hash · lang")]
+        T2[("items<br/>name · aliases[] · base_unit<br/>reorder_level · target_level")]
+        T3[("item_units<br/>per-item pack sizes<br/>1 bori rice = 50 kg")]
+        T4[("transactions — APPEND ONLY<br/>direction · qty_spoken · unit_spoken<br/>qty_base · transcript · confidence")]
+    end
+
+    UI -- "transcript + lang" --> PARSE
+    PARSE -. "intent + confidence<br/>nothing written yet" .-> UI
+    UI -- "user confirmed" --> TXN
+    UI --> STOCK
+    UI --> ALERT
+    AUTH --> T1
+    N5 -- "alias lookup" --> T2
+    TXN --> T4
+    TXN -- "unit → base conversion" --> T3
+    STOCK -- "SUM(qty_base) GROUP BY item" --> T4
+    ALERT -- "stock ≤ reorder_level" --> T4
+
+    FB["⌨️ Fallback: editable transcript field<br/>no speech support / noisy shop<br/>same parse endpoint — not a separate path"]
+    FB --> PARSE
+
+    style NLU fill:#fff4e6,stroke:#f59e0b,stroke-width:2px
+    style Device fill:#eef6ff,stroke:#3b82f6,stroke-width:2px
+    style DB fill:#f0fdf4,stroke:#22c55e,stroke-width:2px
+    style API fill:#faf5ff,stroke:#a855f7,stroke-width:2px
+    style FB fill:#fef2f2,stroke:#ef4444,stroke-dasharray: 4 4
