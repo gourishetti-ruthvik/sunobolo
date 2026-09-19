@@ -50,6 +50,84 @@ input.search{width:100%;padding:13px 15px;border-radius:var(--r);border:1px soli
 .pill.low{background:#ffedd5;color:#9a3412}.pill.out{background:#fee2e2;color:#991b1b}
 .sugg{text-align:right;font-size:12px;color:var(--mut)}.sugg b{display:block;font-size:18px;color:var(--brand)}
 
+/* ── motion ──────────────────────────────────────────────────────────────
+   One reveal class driven by IntersectionObserver, plus a few transitions.
+   Everything here is switched off for anyone who asked for less motion. */
+.rv{opacity:0;transform:translateY(22px);transition:opacity .6s cubic-bezier(.22,1,.36,1),
+    transform .6s cubic-bezier(.22,1,.36,1)}
+.rv.in{opacity:1;transform:none}
+.rv.d1{transition-delay:.08s}.rv.d2{transition-delay:.16s}.rv.d3{transition-delay:.24s}
+.rv.d4{transition-delay:.32s}.rv.d5{transition-delay:.4s}
+@media (prefers-reduced-motion: reduce){
+  .rv,.rv.in{opacity:1;transform:none;transition:none}
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;
+    transition-duration:.001ms!important;scroll-behavior:auto!important}
+}
+
+/* ── landing ─────────────────────────────────────────────────────────── */
+body.land .wrap, body.land nav, body.land #auth{display:none}
+#landing{display:none}
+body.land #landing{display:block;position:fixed;inset:0;overflow-y:auto;z-index:35;background:var(--bg)}
+.lnav{position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:10px;
+  padding:12px 16px;background:rgba(246,247,245,.82);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line)}
+.lnav .lg{display:flex;align-items:center;gap:8px;font-weight:800;font-size:17px;margin-right:auto}
+.lnav .mini{display:flex;gap:2px;background:var(--line);padding:3px;border-radius:99px}
+.lnav .mini button{padding:6px 9px;border-radius:99px;font-size:12px;color:var(--mut)}
+.lnav .mini button.on{background:#fff;color:var(--brand);font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.lnav .go{background:var(--brand);color:#fff;padding:9px 15px;border-radius:99px;font-size:14px;font-weight:700}
+
+.hero{position:relative;overflow:hidden;padding:46px 22px 54px;text-align:center;color:#fff;
+  background:linear-gradient(165deg,#0f766e 0%,#0b5b55 55%,#083f3b 100%)}
+.hero::after{content:"";position:absolute;inset:-40% -20% auto;height:150%;pointer-events:none;
+  background:radial-gradient(closest-side,rgba(94,234,212,.22),transparent 70%);animation:drift 14s ease-in-out infinite}
+@keyframes drift{0%,100%{transform:translate3d(-8%,0,0) scale(1)}50%{transform:translate3d(8%,6%,0) scale(1.15)}}
+.hero h1{position:relative;margin:18px 0 10px;font-size:34px;line-height:1.16;letter-spacing:-.8px;font-weight:800}
+.hero h1 span{display:block;color:#5eead4}
+.hero p{position:relative;margin:0 auto 24px;max-width:340px;font-size:15px;opacity:.82;line-height:1.55}
+.cta{position:relative;display:inline-flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.cta button{padding:15px 26px;border-radius:99px;font-size:16px;font-weight:700;transition:transform .16s,box-shadow .16s}
+.cta .p{background:#fff;color:var(--brand);box-shadow:0 8px 22px rgba(0,0,0,.22)}
+.cta .s{background:rgba(255,255,255,.14);color:#fff;border:1.5px solid rgba(255,255,255,.3)}
+.cta button:active{transform:scale(.96)}
+
+/* the mark's rings pulse outward - the product is "it is listening" */
+.waves{position:relative;height:74px;display:grid;place-items:center}
+.waves i{position:absolute;width:26px;height:26px;border-radius:50%;border:2px solid #5eead4;
+  opacity:0;animation:ring 2.8s ease-out infinite}
+.waves i:nth-child(2){animation-delay:.9s}.waves i:nth-child(3){animation-delay:1.8s}
+@keyframes ring{0%{transform:scale(1);opacity:.85}100%{transform:scale(3.2);opacity:0}}
+.waves b{position:relative;width:26px;height:26px;border-radius:50%;background:#fff}
+
+.sect{padding:36px 18px;max-width:560px;margin:0 auto}
+.sect h2{font-size:13px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--brand);margin:0 0 16px;text-align:center}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fcard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;
+  transition:transform .2s cubic-bezier(.22,1,.36,1),box-shadow .2s}
+.fcard:hover{transform:translateY(-4px);box-shadow:0 12px 28px rgba(16,40,34,.11)}
+.fcard .ic{width:40px;height:40px;border-radius:12px;background:#f0fdfa;display:grid;
+  place-items:center;font-size:20px;margin-bottom:10px}
+.fcard b{display:block;font-size:15px;margin-bottom:4px}
+.fcard span{font-size:12.5px;color:var(--mut);line-height:1.5}
+.steps{display:flex;flex-direction:column;gap:10px}
+.step-row{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);
+  border-radius:18px;padding:15px}
+.step-row em{flex:0 0 34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;
+  display:grid;place-items:center;font-style:normal;font-weight:800;font-size:15px}
+.step-row span{font-size:15px;font-weight:600}
+.lfoot{text-align:center;padding:10px 18px 46px}
+
+/* ── account sheet: sign-out lives here, far from the language toggle ─── */
+.acct-btn{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.18);
+  color:#fff;font-weight:800;font-size:15px;display:grid;place-items:center;flex:0 0 auto;
+  margin-left:10px;transition:background .18s}
+.acct-btn:active{background:rgba(255,255,255,.34)}
+.arow{display:flex;justify-content:space-between;padding:13px 2px;border-bottom:1px solid var(--line);font-size:15px}
+.arow span{color:var(--mut)}
+.danger{width:100%;margin-top:18px;padding:15px;border-radius:14px;background:#fee2e2;
+  color:#991b1b;font-weight:700;font-size:16px}
+
 /* language toggle floats over the gradient, top-left, on every auth screen */
 .atop{position:absolute;top:calc(14px + env(safe-area-inset-top));left:14px;right:14px;
   display:flex;justify-content:flex-start;z-index:2}
@@ -162,6 +240,7 @@ nav>button.mic{flex:0 0 64px;width:64px;height:64px;border-radius:50%;background
   <header>
     <div><div class="shop" id="shopName"></div><div class="sub" id="shopSub"></div></div>
     <div class="langs" id="langs"></div>
+    <button class="acct-btn" id="acctBtn" onclick="accountSheet()"></button>
   </header>
   <main id="main"></main>
 </div>
@@ -170,6 +249,7 @@ nav>button.mic{flex:0 0 64px;width:64px;height:64px;border-radius:50%;background
   <button class="mic" onclick="micEntry()">🎤</button>
   <button id="tabAlerts" onclick="go('alerts')"><span style="font-size:20px">🔔</span><span id="lblAlerts"></span><i class="dot" id="alertDot" hidden></i></button>
 </nav>
+<div id="landing"></div>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <div id="auth"></div>
 <div id="sheet"></div>
@@ -186,7 +266,7 @@ const T = {
       learned:n=>`अब से "${n}" याद रहेगा`,
       added:(q,u,n,t,b)=>`${q} ${u} ${n} जोड़ा गया। अब स्टॉक ${t} ${b} है।`,
       removed:(q,u,n,t,b)=>`${q} ${u} ${n} निकाला गया। अब स्टॉक ${t} ${b} है।`,
-      answer:(n,t,b)=>`${n} ${t} ${b} बचा है।`, lowMsg:c=>`${c} सामान कम हैं`, tagline:'दुकान की बात सुनकर स्टॉक',signIn:'दाखिल हों',newAcc:'नया खाता',phone:'मोबाइल नंबर',pin:'4 अंक का पिन',pin2:'पिन दोबारा',shopN:'दुकान का नाम',ownerN:'आपका नाम',enter:'अंदर जाएं',create:'खाता बनाएं',logout:'बाहर जाएं',pinBad:'दोनों पिन अलग हैं',welcome:n=>`नमस्ते, ${n}`,chooseLang:'भाषा चुनें',orLine:'या',nameShop:'दुकान का नाम रखिए',save:'सेव करें', mismatch:'गिनती मिलती नहीं'},
+      answer:(n,t,b)=>`${n} ${t} ${b} बचा है।`, lowMsg:c=>`${c} सामान कम हैं`, tagline:'दुकान की बात सुनकर स्टॉक',signIn:'दाखिल हों',newAcc:'नया खाता',phone:'मोबाइल नंबर',pin:'4 अंक का पिन',pin2:'पिन दोबारा',shopN:'दुकान का नाम',ownerN:'आपका नाम',enter:'अंदर जाएं',create:'खाता बनाएं',logout:'बाहर जाएं',pinBad:'दोनों पिन अलग हैं',welcome:n=>`नमस्ते, ${n}`,chooseLang:'भाषा चुनें',orLine:'या',heroA:'दुकान की बात',heroB:'सुनकर स्टॉक',heroSub:'बोलना भी नहीं पड़ता। फ़ोन काउंटर पर रखिए, दुकान की आम बातचीत से स्टॉक अपने आप लिखा जाएगा।',start:'शुरू करें',already:'पहले से खाता है',f1t:'काउंटर मोड',f1d:'ग्राहक से बातचीत सुनकर स्टॉक खुद पकड़ लेता है',f2t:'आपकी भाषा',f2d:'हिंदी, तेलुगु, अंग्रेज़ी — एक ही वाक्य में मिलाकर बोलिए',f3t:'बोरी, पेटी, दर्जन',f3d:'जिस यूनिट में खरीदते हैं उसी में बोलिए',f4t:'कुछ गलत नहीं लिखेगा',f4d:'पहले दिखाता है, आपके कहने पर ही स्टॉक बदलता है',f5t:'खुद सीखता है',f5d:'एक बार सही कर दीजिए, अगली बार खुद पहचान लेगा',f6t:'क्या मंगवाना है',f6d:'कम सामान की लिस्ट, बोरी-पेटी में',s1:'फ़ोन काउंटर पर रखिए',s2:'रोज़ की तरह बात कीजिए',s3:'एक टैप में सब सही',howT:'कैसे चलता है',featT:'क्या कर सकता है',account:'खाता',signOutQ:'बाहर जाना है?',nameShop:'दुकान का नाम रखिए',save:'सेव करें', mismatch:'गिनती मिलती नहीं'},
   te:{stock:'నిల్వ',alerts:'హెచ్చరికలు',counter:'కౌంటర్ మోడ్',counterOff:'దుకాణం మాట వింటూ నిల్వ రాయండి',
       counterOn:'వింటున్నాం…',pending:'చూడండి',acceptAll:'అన్నీ సరే',search:'వస్తువు వెతకండి',
       low:'తక్కువ',out:'అయిపోయింది',ok:'సరే',yes:'సరే',no:'వద్దు',order:'ఆర్డర్',history:'గత నమోదులు',
@@ -196,7 +276,7 @@ const T = {
       learned:n=>`ఇప్పటి నుండి "${n}" గుర్తుంటుంది`,
       added:(q,u,n,t,b)=>`${q} ${u} ${n} చేర్చాము. ఇప్పుడు నిల్వ ${t} ${b}.`,
       removed:(q,u,n,t,b)=>`${q} ${u} ${n} తీసేశాము. ఇప్పుడు నిల్వ ${t} ${b}.`,
-      answer:(n,t,b)=>`${n} ${t} ${b} ఉంది.`, lowMsg:c=>`${c} వస్తువులు తక్కువ`, tagline:'దుకాణం మాట వింటూ నిల్వ',signIn:'లాగిన్',newAcc:'కొత్త ఖాతా',phone:'మొబైల్ నంబర్',pin:'4 అంకెల పిన్',pin2:'పిన్ మళ్ళీ',shopN:'దుకాణం పేరు',ownerN:'మీ పేరు',enter:'లోపలికి',create:'ఖాతా సృష్టించు',logout:'బయటకు',pinBad:'రెండు పిన్‌లు వేరు',welcome:n=>`నమస్తే, ${n}`,chooseLang:'భాష ఎంచుకోండి',orLine:'లేదా',nameShop:'దుకాణానికి పేరు పెట్టండి',save:'సేవ్', mismatch:'లెక్క సరిపోలేదు'},
+      answer:(n,t,b)=>`${n} ${t} ${b} ఉంది.`, lowMsg:c=>`${c} వస్తువులు తక్కువ`, tagline:'దుకాణం మాట వింటూ నిల్వ',signIn:'లాగిన్',newAcc:'కొత్త ఖాతా',phone:'మొబైల్ నంబర్',pin:'4 అంకెల పిన్',pin2:'పిన్ మళ్ళీ',shopN:'దుకాణం పేరు',ownerN:'మీ పేరు',enter:'లోపలికి',create:'ఖాతా సృష్టించు',logout:'బయటకు',pinBad:'రెండు పిన్‌లు వేరు',welcome:n=>`నమస్తే, ${n}`,chooseLang:'భాష ఎంచుకోండి',orLine:'లేదా',heroA:'దుకాణం మాట',heroB:'వింటూ నిల్వ',heroSub:'చెప్పనవసరం లేదు. ఫోన్ కౌంటర్‌పై పెట్టండి, మామూలు మాటల నుండే నిల్వ నమోదవుతుంది.',start:'ప్రారంభించండి',already:'ఖాతా ఉంది',f1t:'కౌంటర్ మోడ్',f1d:'కస్టమర్ మాటల నుండే నిల్వ పట్టుకుంటుంది',f2t:'మీ భాష',f2d:'తెలుగు, హిందీ, ఇంగ్లీష్ — కలిపి మాట్లాడండి',f3t:'బోరి, పెట్టె, డజను',f3d:'మీరు కొనే యూనిట్‌లోనే చెప్పండి',f4t:'తప్పు రాయదు',f4d:'ముందు చూపిస్తుంది, మీరు ఒప్పుకుంటేనే మారుతుంది',f5t:'నేర్చుకుంటుంది',f5d:'ఒకసారి సరిచేస్తే, తర్వాత తనే గుర్తిస్తుంది',f6t:'ఏమి ఆర్డర్',f6d:'తక్కువ ఉన్నవి, బోరి-పెట్టెలలో',s1:'ఫోన్ కౌంటర్‌పై పెట్టండి',s2:'రోజులాగే మాట్లాడండి',s3:'ఒక్క నొక్కుతో సరి',howT:'ఎలా పనిచేస్తుంది',featT:'ఏమి చేయగలదు',account:'ఖాతా',signOutQ:'బయటకు వెళ్లాలా?',nameShop:'దుకాణానికి పేరు పెట్టండి',save:'సేవ్', mismatch:'లెక్క సరిపోలేదు'},
   en:{stock:'Stock',alerts:'Alerts',counter:'Counter Mode',counterOff:'Log stock by listening to the shop',
       counterOn:'Listening…',pending:'Please check',acceptAll:'All correct',search:'Find item',
       low:'Low',out:'Out',ok:'OK',yes:'Correct',no:'No',order:'Order',history:'Recent entries',
@@ -206,7 +286,7 @@ const T = {
       learned:n=>`Will remember "${n}" from now on`,
       added:(q,u,n,t,b)=>`Added ${q} ${u} ${n}. Stock is now ${t} ${b}.`,
       removed:(q,u,n,t,b)=>`Removed ${q} ${u} ${n}. Stock is now ${t} ${b}.`,
-      answer:(n,t,b)=>`You have ${t} ${b} of ${n}.`, lowMsg:c=>`${c} items running low`, tagline:'Stock, by listening to your shop',signIn:'Sign in',newAcc:'New account',phone:'Mobile number',pin:'4-digit PIN',pin2:'PIN again',shopN:'Shop name',ownerN:'Your name',enter:'Enter',create:'Create account',logout:'Sign out',pinBad:'The two PINs do not match',welcome:n=>`Hello, ${n}`,chooseLang:'Choose language',orLine:'or',nameShop:'Name your shop',save:'Save', mismatch:'Count disagrees'},
+      answer:(n,t,b)=>`You have ${t} ${b} of ${n}.`, lowMsg:c=>`${c} items running low`, tagline:'Stock, by listening to your shop',signIn:'Sign in',newAcc:'New account',phone:'Mobile number',pin:'4-digit PIN',pin2:'PIN again',shopN:'Shop name',ownerN:'Your name',enter:'Enter',create:'Create account',logout:'Sign out',pinBad:'The two PINs do not match',welcome:n=>`Hello, ${n}`,chooseLang:'Choose language',orLine:'or',heroA:'Your shop talks.',heroB:'It listens.',heroSub:'No commands to learn. Leave the phone on the counter and ordinary conversation becomes your stock book.',start:'Get started',already:'I have an account',f1t:'Counter Mode',f1d:'Picks up stock from what you and the customer already say',f2t:'Your language',f2d:'Hindi, Telugu, English — mixed in one sentence',f3t:'Bori, peti, dozen',f3d:'Speak in the units you actually buy in',f4t:'Never writes a guess',f4d:'It proposes; stock changes only when you agree',f5t:'Learns as you go',f5d:'Correct it once and it knows that word forever',f6t:'What to order',f6d:'Low stock, counted in sacks and cartons',s1:'Put the phone on the counter',s2:'Talk to customers as usual',s3:'One tap to approve',howT:'How it works',featT:'What it does',account:'Account',signOutQ:'Sign out?',nameShop:'Name your shop',save:'Save', mismatch:'Count disagrees'},
 };
 const LOCALE = {hi:'hi-IN', te:'te-IN', en:'en-IN'};
 
@@ -339,6 +419,9 @@ async function load(){ [items, alerts] = await Promise.all([api('/stock'), api('
 
 function render(){
   document.getElementById('shopName').textContent = shopName || 'SunoBolo';
+  const ab = document.getElementById('acctBtn');
+  ab.textContent = (ownerName || '?').trim().charAt(0).toUpperCase();
+  ab.title = t().account;
   document.getElementById('shopSub').innerHTML =
     `${items.length} ${t().stock} <span class="who">${ownerName}</span>`;
   document.getElementById('lblStock').textContent = t().stock;
@@ -348,7 +431,7 @@ function render(){
   const d = document.getElementById('alertDot'); d.hidden = !alerts.length; d.textContent = alerts.length;
   document.getElementById('langs').innerHTML = ['hi','te','en'].map(l =>
     `<button class="${l===lang?'on':''}" onclick="setLang('${l}')">${({hi:'हिंदी',te:'తెలుగు',en:'EN'})[l]}</button>`).join('')
-    + `<button onclick="signOut()" title="${t().logout}">⏻</button>`;
+;
 
   let h = `<div class="counter ${counterOn?'on':''}" onclick="toggleCounter()">
       ${counterOn ? '<span class="ear"></span>' : '<span style="font-size:22px">👂</span>'}
@@ -374,8 +457,9 @@ function render(){
   if(tab === 'stock'){
     if(alerts.length) h += `<div class="banner">⚠️ ${t().lowMsg(alerts.length)}</div>`;
     const rank = {out:0, low:1, ok:2};
+    let n = 0;
     h += '<div class="list">' + [...items].sort((a,b)=>rank[a.status]-rank[b.status]).map(i =>
-      `<button class="row ${i.status}" onclick="detail(${i.id})">
+      `<button class="row ${i.status} rv d${Math.min(n++,5)}" onclick="detail(${i.id})">
          <div class="nm">${nameOf(i)}<span>${i.name}</span></div>
          <div class="qt"><b>${i.stock}</b> <em>${i.base_unit}</em>
            <div class="pill ${i.status}">${i.mismatch ? '⚠ ' + t().mismatch
@@ -389,6 +473,7 @@ function render(){
        </button>`).join('') + '</div>' : `<div class="empty">✅ ${t().none}</div>`;
   }
   document.getElementById('main').innerHTML = h;
+  observeReveals();
 }
 
 /* A proposal card. Everything on it is correctable with a tap - that is both
@@ -531,8 +616,7 @@ function signOut(){
   if(counterOn) toggleCounter();   // never keep listening once nobody is signed in
   props = []; items = []; alerts = [];
   authMode = 'in'; authErr = '';   // signing out lands on sign-in, not on register
-  document.body.classList.add('out');
-  renderAuth();
+  showLanding();
 }
 
 function signedIn(r){
@@ -542,7 +626,7 @@ function signedIn(r){
   localStorage.setItem('sb_owner', ownerName);
   if(r.lang) lang = r.lang;
   authErr = '';
-  document.body.classList.remove('out');
+  document.body.classList.remove('out', 'land');
   document.getElementById('auth').innerHTML = '';
   load();
   toast(t().welcome(ownerName));
@@ -643,17 +727,104 @@ async function submitAuth(){
   }
 }
 
+// ─── landing ────────────────────────────────────────────
+const SMALL_MARK = `<svg viewBox="0 0 64 64" width="26" height="26" aria-hidden="true">
+  <circle cx="32" cy="32" r="30" fill="#0f766e"/><circle cx="23" cy="32" r="6" fill="#fff"/>
+  <path d="M33 21a15 15 0 0 1 0 22" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M42 14a24 24 0 0 1 0 36" stroke="#5eead4" stroke-width="5" fill="none" stroke-linecap="round"/></svg>`;
+
+function renderLanding(){
+  const F = [['👂','f1t','f1d'], ['🗣️','f2t','f2d'], ['📦','f3t','f3d'],
+             ['✋','f4t','f4d'], ['🧠','f5t','f5d'], ['🔔','f6t','f6d']];
+  document.getElementById('landing').innerHTML = `
+    <div class="lnav">
+      <div class="lg">${SMALL_MARK} SunoBolo</div>
+      <div class="mini">${['hi','te','en'].map(l =>
+        `<button class="${l===lang?'on':''}" onclick="setLang('${l}');renderLanding()">${
+          ({hi:'हिंदी',te:'తెలుగు',en:'EN'})[l]}</button>`).join('')}</div>
+      <button class="go" onclick="openAuth('in')">${t().signIn}</button>
+    </div>
+
+    <div class="hero">
+      <div class="waves"><i></i><i></i><i></i><b></b></div>
+      <h1>${t().heroA}<span>${t().heroB}</span></h1>
+      <p>${t().heroSub}</p>
+      <div class="cta">
+        <button class="p" onclick="openAuth('up')">${t().start}</button>
+        <button class="s" onclick="openAuth('in')">${t().already}</button>
+      </div>
+    </div>
+
+    <div class="sect">
+      <h2 class="rv">${t().featT}</h2>
+      <div class="cards">${F.map(([ic,tk,dk],i) =>
+        `<div class="fcard rv d${Math.min(i,5)}"><div class="ic">${ic}</div>
+           <b>${t()[tk]}</b><span>${t()[dk]}</span></div>`).join('')}</div>
+    </div>
+
+    <div class="sect">
+      <h2 class="rv">${t().howT}</h2>
+      <div class="steps">${['s1','s2','s3'].map((k,i) =>
+        `<div class="step-row rv d${i}"><em>${i+1}</em><span>${t()[k]}</span></div>`).join('')}</div>
+    </div>
+
+    <div class="lfoot rv">
+      <button class="big-btn" style="max-width:280px;margin:0 auto"
+        onclick="openAuth('up')">${t().start}</button>
+    </div>`;
+  observeReveals();
+}
+
+/* Reveal on scroll: one observer, and each element is unobserved once it has
+   fired - no scroll handler, and no work left behind after things appear. */
+let revealObs;
+function observeReveals(){
+  revealObs?.disconnect();
+  revealObs = new IntersectionObserver(es => {
+    for(const e of es) if(e.isIntersecting){ e.target.classList.add('in'); revealObs.unobserve(e.target); }
+  }, {rootMargin:'0px 0px -8% 0px', threshold:.08});
+  document.querySelectorAll('.rv:not(.in)').forEach(el => revealObs.observe(el));
+}
+
+function openAuth(mode){
+  authMode = mode; authErr = '';
+  document.body.classList.remove('land');
+  document.body.classList.add('out');
+  renderAuth();
+}
+
+function showLanding(){
+  document.body.classList.remove('out');
+  document.body.classList.add('land');
+  renderLanding();
+}
+
+// ─── account sheet: sign-out lives here, nowhere near the language toggle ───
+function accountSheet(){
+  sheet(`<h2 style="margin:4px 0 14px;font-size:21px">${t().account}</h2>
+    <div class="arow"><span>${t().shopN}</span><b>${shopName}</b></div>
+    <div class="arow"><span>${t().ownerN}</span><b>${ownerName}</b></div>
+    <button class="btn ghost wide" onclick="renameFromAccount()">${t().nameShop}</button>
+    <button class="danger" onclick="confirmSignOut()">${t().logout}</button>`);
+}
+
+const renameFromAccount = () => { closeSheet(); askShopName(); };
+
+function confirmSignOut(){
+  // A second tap on purpose: signing out mid-shift throws away the pending tray.
+  sheet(`<h2 style="margin:4px 0 16px;font-size:20px">${t().signOutQ}</h2>
+    <div class="acts"><button class="btn" onclick="closeSheet()">${t().no}</button>
+      <button class="btn go" style="background:var(--out)"
+        onclick="closeSheet();signOut()">${t().logout}</button></div>`);
+}
+
 // ─── start ───
 let googleClientId = '';
 
 (async function boot(){
-  if(token){ document.body.classList.remove('out'); load(); return; }
-  document.body.classList.add('out');
-  renderAuth();                       // draw immediately, do not wait on the network
-  try{
-    googleClientId = (await api('/config')).google_client_id || '';
-    if(googleClientId) renderAuth();  // redraw once we know the button belongs there
-  }catch{}
+  if(token){ load(); return; }
+  showLanding();                      // a first-time visitor should see what this is
+  try{ googleClientId = (await api('/config')).google_client_id || ''; }catch{}
 })();
 </script>
 </body>
