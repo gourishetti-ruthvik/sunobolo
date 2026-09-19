@@ -120,9 +120,17 @@ input.search:focus{border-color:var(--v1);box-shadow:0 0 0 3px rgba(168,85,247,.
   border-radius:var(--r);padding:14px;color:var(--ink);transition:border-color .2s,transform .2s,background .2s;
 }
 .row:hover{background:var(--surf2);transform:translateX(2px)}
+/* the row opens the item; the pencil edits it. Two buttons, not one nested. */
+.rowmain{display:flex;justify-content:space-between;align-items:center;gap:10px;
+  flex:1 1 auto;min-width:0;text-align:left;color:inherit;padding:0}
+/* 44px, not 36 - the UX spec commits to a minimum tap target and a pencil
+   squeezed beside a number is exactly where that gets quietly broken. */
+.rowedit{flex:0 0 44px;width:44px;height:44px;border-radius:12px;display:grid;
+  place-items:center;color:var(--mut2);border:1px solid transparent;transition:.15s}
+.rowedit:hover,.rowedit:focus-visible{color:var(--v3);border-color:var(--line2);background:var(--surf2)}
 .row.low{border-left-color:var(--low)}.row.out{border-left-color:var(--out)}
 .nm{font-size:16.5px;font-weight:600;min-width:0}
-.nm span{display:block;font-size:11.5px;color:var(--mut2);font-weight:400}
+.nm>span{display:block;font-size:11.5px;color:var(--mut2);font-weight:400}
 .qt{text-align:right;white-space:nowrap}
 .qt b{font-size:21px;font-variant-numeric:tabular-nums}
 .qt em{font-size:12.5px;color:var(--mut);font-style:normal;margin-left:2px}
@@ -197,10 +205,16 @@ nav{position:fixed;bottom:0;left:0;right:0;max-width:520px;margin:0 auto;z-index
 nav>button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
   font-size:11.5px;color:var(--mut2);padding:6px 0;position:relative;transition:color .18s}
 nav>button.on{color:var(--v3);font-weight:700}
-nav>button.mic{flex:0 0 62px;width:62px;height:62px;border-radius:50%;background:var(--grad);
+/* mic and add-product sit together: speaking and typing are the two ways in */
+.fabs{display:flex;align-items:center;gap:10px;flex:0 0 auto}
+.fabs .mic{width:62px;height:62px;border-radius:50%;background:var(--grad);
   color:#fff;margin-top:-26px;padding:0;display:grid;place-items:center;
-  box-shadow:0 8px 24px rgba(124,58,237,.45)}
-nav>button.mic:active{transform:scale(.94)}
+  box-shadow:0 8px 24px rgba(124,58,237,.45);transition:transform .15s}
+.fabs .mic:active{transform:scale(.94)}
+.fabs .add{width:44px;height:44px;border-radius:50%;margin-top:-16px;padding:0;
+  display:grid;place-items:center;background:var(--surf2);color:var(--v3);
+  border:1px solid var(--line2);transition:.15s}
+.fabs .add:active{transform:scale(.92);background:var(--surf3)}
 .dot{position:absolute;top:0;right:22%;background:var(--out);color:#fff;font-style:normal;
   font-size:10px;font-weight:700;min-width:18px;height:18px;border-radius:9px;
   display:grid;place-items:center;padding:0 4px}
@@ -410,7 +424,10 @@ body.out #auth::before{content:"";position:fixed;left:50%;top:-180px;width:560px
 </div>
 <nav class="wrap">
   <button id="tabStock" onclick="go('stock')"><span id="icStock"></span><span id="lblStock"></span></button>
-  <button class="mic" onclick="micEntry()" aria-label="mic"></button>
+  <span class="fabs">
+    <button class="add" onclick="newItem()" id="addBtn"></button>
+    <button class="mic" onclick="micEntry()" aria-label="mic"></button>
+  </span>
   <button id="tabAlerts" onclick="go('alerts')"><span id="icAlerts"></span><span id="lblAlerts"></span><i class="dot" id="alertDot" hidden></i></button>
 </nav>
 <div id="landing"></div>
@@ -438,6 +455,7 @@ const PATHS = {
   pencil:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
   clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   chev:'<path d="m6 9 6 6 6-6"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
   trash:'<path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/>',
   logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
   wave:'<path d="M2 12h3M19 12h3"/><path d="M7 8v8M12 4v16M17 8v8"/>',
@@ -632,6 +650,9 @@ function render(){
     `${items.length} ${t().stock} <span class="who">${ownerName}</span>`;
   document.getElementById('lblStock').textContent = t().stock;
   document.querySelector('nav .mic').innerHTML = icon('mic', 26);
+  const ad = document.getElementById('addBtn');
+  ad.innerHTML = icon('plus', 21);
+  ad.title = t().addFirst;
   document.getElementById('icStock').innerHTML = icon('box', 21);
   document.getElementById('icAlerts').innerHTML = icon('bell', 21);
   document.getElementById('idChev').innerHTML = icon('chev', 16);
@@ -677,12 +698,15 @@ function render(){
     const rank = {out:0, low:1, ok:2};
     let n = 0;
     h += '<div class="list">' + [...items].sort((a,b)=>rank[a.status]-rank[b.status]).map(i =>
-      `<button class="row ${i.status} rv d${Math.min(n++,5)}" onclick="detail(${i.id})">
-         <div class="nm">${nameOf(i)}<span>${i.name}</span></div>
-         <div class="qt"><b>${i.stock}</b> <em>${i.base_unit}</em>
-           <div class="pill ${i.status}">${i.mismatch ? icon('alert',11)+t().mismatch
-             : i.status==='out'?t().out : i.status==='low'?t().low : t().ok}</div></div>
-       </button>`).join('') + '</div>';
+      `<div class="row ${i.status} rv d${Math.min(n++,5)}">
+         <button class="rowmain" onclick="detail(${i.id})">
+           <span class="nm">${nameOf(i)}<span>${i.name}</span></span>
+           <span class="qt"><b>${i.stock}</b> <em>${i.base_unit}</em>
+             <span class="pill ${i.status}">${i.mismatch ? icon('alert',11)+t().mismatch
+               : i.status==='out'?t().out : i.status==='low'?t().low : t().ok}</span></span>
+         </button>
+         <button class="rowedit" onclick="editItem(${i.id})" title="${t().editLbl}">${icon('pencil',17)}</button>
+       </div>`).join('') + '</div>';
   } else {
     h += alerts.length ? '<div class="list">' + alerts.map(a =>
       `<button class="row ${a.status}" onclick="detail(${a.id})">
