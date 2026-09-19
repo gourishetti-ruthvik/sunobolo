@@ -173,6 +173,26 @@ environment variables — no secret is committed.
 **Known limit:** the free instance sleeps after ~15 minutes idle and takes ~50s to wake.
 Open the URL a couple of minutes before demoing.
 
+### Check what is actually live
+
+`/healthz` reports the commit it is running, so a stale deploy is visible rather than
+mistaken for a broken feature:
+
+```bash
+./scripts/check_deploy.sh
+```
+
+```
+local : 15100c6
+live  : 15100c6
+OK    : the live site is running your latest commit
+```
+
+Render auto-deploy needs a GitHub webhook, and a service created through the API does not
+get one — it reports `autoDeploy: yes` and silently never fires. Fix it once in the Render
+dashboard: **Settings → Build & Deploy → Repository → Connect** (authorise the Render
+GitHub App for this repo). Until then, deploy with **Manual Deploy → Deploy latest commit**.
+
 ---
 
 ## How it compares

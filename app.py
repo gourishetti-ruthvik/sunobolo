@@ -441,8 +441,14 @@ def home():
 
 @app.get("/healthz")
 def healthz():
-    """Cheap liveness check that does not touch the database."""
-    return {"ok": True}
+    """Liveness, plus which commit is actually running.
+
+    Render sets RENDER_GIT_COMMIT at build time. Without this it is impossible
+    to tell a stale deploy from a broken feature - we lost a test cycle to
+    exactly that, testing a build that had never shipped. `make deployed` or
+    scripts/check_deploy.sh compares this against local HEAD.
+    """
+    return {"ok": True, "commit": os.environ.get("RENDER_GIT_COMMIT", "local")[:7]}
 
 
 @app.get("/stock")
