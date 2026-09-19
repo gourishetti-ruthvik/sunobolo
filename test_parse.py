@@ -48,10 +48,13 @@ def run():
     assert parse("chawal kitna hai", ITEMS)[0]["action"] == "query_item"
     assert parse("kya khatam ho raha hai", ITEMS)[0]["action"] == "query_low"
 
-    # Overheard chatter with no item in it must be dropped, not guessed at.
+    # Overheard chatter must be dropped, not guessed at. Counter Mode uses a
+    # higher floor than the mic button for exactly this reason.
     assert parse("aaj garmi bahut hai", ITEMS, "counter") == []
+    assert parse("namaste bhaiya kaise ho", ITEMS, "counter") == []
+    assert parse("aaj bahut garmi hai", ITEMS, "counter") == []
 
-    print(f"all {len(CASES) + 4} checks passed")
+    print(f"all {len(CASES) + 6} checks passed")
 
 
 if __name__ == "__main__":

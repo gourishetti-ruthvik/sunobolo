@@ -23,8 +23,12 @@ from rapidfuzz import fuzz
 # ── Confidence thresholds ────────────────────────────────────────────────────
 ACCEPT = 85   # sure enough to pre-tick for bulk approval
 SUGGEST = 60  # unsure - show "did you mean" choices instead
-# Below SUGGEST we throw the result away. In Counter Mode the app is listening
-# to a whole shop, so most of what it hears is not a transaction at all.
+# Below the floor we throw the result away. Counter Mode needs a HIGHER floor
+# than the mic button: the user chose to speak into the mic, but Counter Mode
+# hears the whole shop, so most of what reaches it is not a transaction.
+# Measured: "aaj bahut garmi hai" (talking about the weather) scores 60 against
+# Sugar. At a floor of 60 that became a proposal. At 75 it is correctly ignored.
+COUNTER_FLOOR = 75
 
 # ── Number words ─────────────────────────────────────────────────────────────
 # Hindi + Telugu. "dhai/derh/sawa" are the half-quantities shopkeepers actually say.
@@ -186,12 +190,13 @@ def parse(text, items, mode="command"):
         return [{"action": "query_low"}]
 
     direction = find_direction(tokens, "out" if mode == "counter" else "in")
+    floor = COUNTER_FLOOR if mode == "counter" else SUGGEST
 
     moves = []
     for fragment in SPLITTERS.split(text):
         words = fragment.split()
         ranked = match_item(fragment, items)
-        if not ranked or ranked[0][0] < SUGGEST:
+        if not ranked or ranked[0][0] < floor:
             continue                      # nothing recognisable - stay silent
 
         score, item = ranked[0]
