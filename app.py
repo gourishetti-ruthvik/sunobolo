@@ -191,6 +191,71 @@ def undo(txn_id: int):
     return {"ok": True}
 
 
+@app.get("/search")
+def search(q: str = ""):
+    """Find an item by ANY alias in ANY language: 'rice', 'chawal' and 'बियाम'
+    all reach the same row. This is the escape hatch when a match is wrong."""
+    q = q.strip().lower()
+    rows = stock_rows()
+    if not q:
+        return rows
+    return [i for i in rows
+            if q in i["name"].lower() or any(q in a.lower() for a in i["aliases"])]
+
+
+@app.post("/items")
+def add_item(body: dict):
+    """Add something the shop stocks that we had never heard of.
+
+    The word actually spoken becomes the item's first alias, so the very next
+    time it is said it matches - no model, no retraining, just a row."""
+    name = (body.get("name") or "").strip()
+    if not name:
+        raise HTTPException(400, "name required")
+    base = body.get("base_unit") or "pc"
+    if base not in ("kg", "pc", "litre"):
+        raise HTTPException(400, "base_unit must be kg, pc or litre")
+    heard = (body.get("heard") or "").strip().lower()
+    aliases = sorted({name.lower()} | ({heard} if heard else set()))
+
+    con = db()
+    cur = con.execute(
+        "INSERT INTO items (name,name_hi,name_te,aliases,base_unit,packs,"
+        "reorder_level,target_level,last_price) VALUES (?,?,?,?,?,'{}',?,?,0)",
+        (name, name, name, json.dumps(aliases), base,
+         float(body.get("reorder_level") or 0), float(body.get("target_level") or 0)))
+    con.commit()
+    new_id = cur.lastrowid
+    con.close()
+    return {"id": new_id, "name": name, "base_unit": base}
+
+
+@app.post("/items/{item_id}/alias")
+def learn_alias(item_id: int, body: dict):
+    """THE LEARNING STEP. Every correction teaches the lexicon.
+
+    When the owner says "tamatar" and fixes the match to Tomato, that word is
+    stored as an alias of Tomato. Correct it once; it is right from then on.
+    This is why the system gets better with use without any training."""
+    word = (body.get("word") or "").strip().lower()
+    if not word:
+        return {"learned": False}
+    con = db()
+    row = con.execute("SELECT aliases FROM items WHERE id=?", (item_id,)).fetchone()
+    if not row:
+        con.close()
+        raise HTTPException(404, "unknown item")
+    aliases = json.loads(row["aliases"])
+    if word in (a.lower() for a in aliases):
+        con.close()
+        return {"learned": False}          # already knew it
+    aliases.append(word)
+    con.execute("UPDATE items SET aliases=? WHERE id=?", (json.dumps(aliases), item_id))
+    con.commit()
+    con.close()
+    return {"learned": True, "word": word}
+
+
 @app.get("/alerts")
 def alerts():
     """Low stock, with how much to order expressed in the unit you actually buy in."""

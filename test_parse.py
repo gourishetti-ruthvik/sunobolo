@@ -25,6 +25,7 @@ CASES = [
     ("2 tray anda becha",            "command", "Eggs", -60),     # tray = 30 pc
     ("ek carton maggi aaya",         "command", "Maggi", +96),    # carton = 96 pc
     ("das kilo chaawal aaya",        "command", "Rice", +10),     # misspelt by the recogniser
+    ("4kg chawal aaya",              "command", "Rice", +4),      # "4kg" glued together
     ("paanch kilo chowal aaya",      "command", "Rice", +5),      # misspelt differently
     ("bhaiya do kilo chawal dena",   "counter", "Rice", -2),      # overheard sale
     ("paanch anda chahiye",          "counter", "Eggs", -5),      # customer asking
@@ -54,7 +55,15 @@ def run():
     assert parse("namaste bhaiya kaise ho", ITEMS, "counter") == []
     assert parse("aaj bahut garmi hai", ITEMS, "counter") == []
 
-    print(f"all {len(CASES) + 6} checks passed")
+    # An item the shop does not stock must NOT be forced onto the nearest name.
+    # "tamatar" scored 72.7 against "aata" - high enough to look like a match.
+    u = parse("char kilo tamatar dena", ITEMS, "command")
+    assert u and u[0]["action"] == "unknown_item", u
+    assert u[0]["heard"] == "tamatar" and u[0]["qty"] == 4, u
+    # ...and in Counter Mode it is dropped silently instead, since nobody asked.
+    assert parse("char kilo tamatar dena", ITEMS, "counter") == []
+
+    print(f"all {len(CASES) + 10} checks passed")
 
 
 if __name__ == "__main__":

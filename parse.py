@@ -19,6 +19,7 @@ No machine learning. No training. Just lists and one fuzzy string match.
 
 import re
 from rapidfuzz import fuzz
+from jellyfish import metaphone
 
 # ── Confidence thresholds ────────────────────────────────────────────────────
 ACCEPT = 85   # sure enough to pre-tick for bulk approval
@@ -99,7 +100,10 @@ def normalise(text):
     """Lowercase and strip punctuation. Hindi/Telugu script passes through
     untouched - the fuzzy matcher does not care which alphabet it is looking at."""
     text = text.lower().strip()
-    return re.sub(r"[^\w\sऀ-ॿఀ-౿.]", " ", text)
+    text = re.sub(r"[^\w\sऀ-ॿఀ-౿.]", " ", text)
+    # "4kg" must become "4 kg" or the quantity is missed entirely and silently
+    # defaults to 1. Speech-to-text writes numbers glued to units all the time.
+    return re.sub(r"(\d)([^\d\s])", r"\1 \2", text)
 
 
 def to_number(tokens):
@@ -152,8 +156,7 @@ def match_item(text, items, limit=3):
     words in a sentence drag the score down: "chowal" scores 83 against
     "chawal", but "paanch kilo chowal aaya" scores only 34.
     """
-    words = [w for w in text.split()
-             if len(w) >= 3 and w not in NUMBERS and w not in UNITS and w not in STOPWORDS]
+    words = content_words(text)
     scored = []
     for it in items:
         best = 0
@@ -163,10 +166,43 @@ def match_item(text, items, limit=3):
                 # multi-word alias ("toor dal") has to be matched against the phrase
                 best = max(best, fuzz.token_set_ratio(text, alias))
             for w in words:
-                best = max(best, fuzz.ratio(w, alias))
+                best = max(best, score_word(w, alias))
         scored.append((best, it))
     scored.sort(key=lambda pair: -pair[0])
     return scored[:limit]
+
+
+def content_words(text):
+    """The words that could be an item name: numbers, units, action verbs and
+    filler all removed. A verb like 'dena' must never be compared against an
+    item name, and must not show up when we ask 'add this new item?'."""
+    skip = NUMBERS.keys() | UNITS.keys() | STOPWORDS | IN_WORDS | OUT_WORDS \
+        | QUERY_WORDS | LOW_WORDS
+    return [w for w in text.split() if len(w) >= 3 and w not in skip]
+
+
+def score_word(word, alias):
+    """How much one spoken word looks like one alias, 0-100.
+
+    Two guards on top of plain fuzzy matching, both added after real misfires:
+
+    LENGTH. "tamatar" scores 72.7 against "aata" - the same score as "sawal"
+    against "chawal", which IS a real mishearing. Fuzzy ratio alone cannot tell
+    them apart. Length does: 4/7 = 0.57 versus 5/6 = 0.83. A seven-letter word
+    is not a mispronounced four-letter one.
+
+    SOUND. Speech-to-text errors keep the sound and change the spelling, so when
+    two words share a phonetic code they are very likely the same word.
+    """
+    short, long = sorted((len(word), len(alias)))
+    if short / long < 0.65:
+        return 0
+    score = fuzz.ratio(word, alias)
+    # metaphone is an English phoneticiser, so only trust it on romanised input;
+    # native script matches already score near 100 on the plain ratio.
+    if word.isascii() and alias.isascii() and metaphone(word) == metaphone(alias):
+        score = min(100, score + 10)
+    return score
 
 
 def parse(text, items, mode="command"):
@@ -197,7 +233,18 @@ def parse(text, items, mode="command"):
         words = fragment.split()
         ranked = match_item(fragment, items)
         if not ranked or ranked[0][0] < floor:
-            continue                      # nothing recognisable - stay silent
+            # Counter Mode stays silent - it is listening to a whole shop and
+            # most of what it hears is not about stock. But when the user spoke
+            # ON PURPOSE we must not guess, and we must not swallow it either:
+            # say we do not know the item and let them search or add it.
+            heard = content_words(fragment)
+            if heard and mode != "counter":
+                moves.append({"action": "unknown_item",
+                              "heard": " ".join(heard),
+                              "qty": to_number(words) or 1,
+                              "direction": direction,
+                              "transcript": text})
+            continue
 
         score, item = ranked[0]
         unit, factor = find_unit(words, item)
@@ -210,6 +257,9 @@ def parse(text, items, mode="command"):
             "qty_base": round(qty * factor * (-1 if direction == "out" else 1), 3),
             "confidence": score,
             "sure": score >= ACCEPT,
+            # the word we think was the item name - if the user corrects the
+            # match, this is what gets stored as an alias of the right item
+            "heard": " ".join(content_words(fragment)),
             # Shown as one-tap "did you mean" chips when we are not confident.
             "candidates": [i for _, i in ranked[1:]] if score < ACCEPT else [],
             "transcript": text,

@@ -120,6 +120,8 @@ const T = {
       counterOn:'सुन रहे हैं…',pending:'जाँच लीजिए',acceptAll:'सब सही हैं',search:'सामान ढूंढें',
       low:'कम है',out:'खत्म',ok:'ठीक है',yes:'सही है',no:'नहीं',order:'मंगवाएं',history:'पिछली एंट्री',
       maybe:'शायद…',speak:'बोलिए',type:'लिखकर बताइए',none:'अभी कुछ नहीं',
+      unknown:'यह सामान हमें नहीं पता',addNew:'नया सामान जोड़ें',qtyPrompt:'कितना?',
+      learned:n=>`अब से "${n}" याद रहेगा`,
       added:(q,u,n,t,b)=>`${q} ${u} ${n} जोड़ा गया। अब स्टॉक ${t} ${b} है।`,
       removed:(q,u,n,t,b)=>`${q} ${u} ${n} निकाला गया। अब स्टॉक ${t} ${b} है।`,
       answer:(n,t,b)=>`${n} ${t} ${b} बचा है।`, lowMsg:c=>`${c} सामान कम हैं`},
@@ -127,6 +129,8 @@ const T = {
       counterOn:'వింటున్నాం…',pending:'చూడండి',acceptAll:'అన్నీ సరే',search:'వస్తువు వెతకండి',
       low:'తక్కువ',out:'అయిపోయింది',ok:'సరే',yes:'సరే',no:'వద్దు',order:'ఆర్డర్',history:'గత నమోదులు',
       maybe:'బహుశా…',speak:'చెప్పండి',type:'టైప్ చేయండి',none:'ఇప్పుడు ఏమీ లేదు',
+      unknown:'ఈ వస్తువు మాకు తెలియదు',addNew:'కొత్త వస్తువు చేర్చండి',qtyPrompt:'ఎంత?',
+      learned:n=>`ఇప్పటి నుండి "${n}" గుర్తుంటుంది`,
       added:(q,u,n,t,b)=>`${q} ${u} ${n} చేర్చాము. ఇప్పుడు నిల్వ ${t} ${b}.`,
       removed:(q,u,n,t,b)=>`${q} ${u} ${n} తీసేశాము. ఇప్పుడు నిల్వ ${t} ${b}.`,
       answer:(n,t,b)=>`${n} ${t} ${b} ఉంది.`, lowMsg:c=>`${c} వస్తువులు తక్కువ`},
@@ -221,7 +225,8 @@ async function propose(text, source){
   for(const m of r.moves){
     if(m.action === 'query_item'){ say(t().answer(nameOf(m.item), m.item.stock, m.item.base_unit)); continue; }
     if(m.action === 'query_low'){ say(t().lowMsg(alerts.length)); go('alerts'); continue; }
-    m.id = nextId++; m.source = source; m.direction = m.action==='stock_out' ? 'out' : 'in';
+    m.id = nextId++; m.source = source;
+    if(m.action !== 'unknown_item') m.direction = m.action==='stock_out' ? 'out' : 'in';
     props.unshift(m);
   }
   render();
@@ -290,17 +295,19 @@ function render(){
 /* A proposal card. Everything on it is correctable with a tap - that is both
    the correction feature and the safety net for a fuzzy match being wrong. */
 function card(m){
+  if(m.action === 'unknown_item') return unknownCard(m);
   const units = [m.item.base_unit, ...Object.keys(m.item.packs)];
   return `<div class="prop ${m.sure?'':'unsure'}">
     <span class="score ${m.sure?'':'w'}">${Math.round(m.confidence)}%</span>
     <p class="quote">“${m.transcript}”</p>
     <div style="font-size:20px;font-weight:700">${nameOf(m.item)}</div>
     ${!m.sure && m.candidates.length ? `<div style="font-size:12px;color:var(--mut);margin-top:6px">${t().maybe}</div>
-      <div class="chips">${m.candidates.map(c=>`<button onclick='edit(${m.id},{item:${JSON.stringify(
-         {...c, base_unit:m.item.base_unit, packs:m.item.packs, stock:0})},confidence:100,sure:true})'>${nameOf(c)}</button>`).join('')}</div>`:''}
+      <div class="chips">${m.candidates.map(c=>
+         `<button onclick="pickItem(${m.id},${c.id})">${nameOf(c)}</button>`).join('')}
+         <button onclick="openSearch(${m.id})">🔍 ${t().search}</button></div>`:''}
     <div class="step">
       <button onclick="edit(${m.id},{qty:Math.max(.5,${m.qty}-1)})">−</button>
-      <div class="qv"><b>${m.qty}</b><em>${m.unit}</em></div>
+      <div class="qv" onclick="askQty(${m.id})"><b>${m.qty}</b><em>${m.unit} ✎</em></div>
       <button onclick="edit(${m.id},{qty:${m.qty}+1})">+</button></div>
     <div class="chips">${units.map(u=>`<button class="${u===m.unit?'on':''}"
        onclick="edit(${m.id},{unit:'${u}'})">${u}</button>`).join('')}</div>
@@ -309,6 +316,75 @@ function card(m){
       <button class="${m.direction==='out'?'on o':''}" onclick="edit(${m.id},{direction:'out'})">↑ OUT</button></div>
     <div class="acts"><button class="btn" onclick="reject(${m.id})">${t().no}</button>
       <button class="btn go" onclick="accept(${m.id})">${t().yes}</button></div></div>`;
+}
+
+/* We heard a word but the shop does not stock anything like it. Never guess -
+   offer the two honest options: find the right item, or add a new one. */
+function unknownCard(m){
+  return `<div class="prop unsure">
+    <p class="quote">“${m.transcript}”</p>
+    <div style="font-size:20px;font-weight:700">❓ ${m.heard}</div>
+    <div style="font-size:13px;color:var(--mut);margin:4px 0 2px">${t().unknown}</div>
+    <input class="search" style="margin-top:10px" placeholder="🔍 ${t().search}"
+           oninput="searchFor(${m.id}, this.value)">
+    <div class="chips" id="res${m.id}"></div>
+    <div class="acts"><button class="btn" onclick="reject(${m.id})">${t().no}</button>
+      <button class="btn go" onclick="addNew(${m.id})">${t().addNew}</button></div></div>`;
+}
+
+async function searchFor(id, q){
+  const hits = await api('/search?q=' + encodeURIComponent(q));
+  const box = document.getElementById('res' + id);
+  if(box) box.innerHTML = hits.slice(0, 6).map(i =>
+    `<button onclick="pickItem(${id},${i.id})">${nameOf(i)}</button>`).join('');
+}
+
+const openSearch = id => { props.find(p=>p.id===id).action = 'unknown_item'; render(); };
+
+/* Correcting a match is also how the app LEARNS. The word that was actually
+   said is stored as an alias of the item the owner picked, so the same word
+   matches straight away next time. No training, just one more row. */
+async function pickItem(id, itemId){
+  const m = props.find(p => p.id === id);
+  const it = (await api('/stock')).find(x => x.id === itemId);
+  if(m.heard){
+    const r = await api(`/items/${itemId}/alias`, {word: m.heard});
+    if(r.learned) toast(t().learned(m.heard));
+  }
+  Object.assign(m, {action: m.direction === 'out' ? 'stock_out' : 'stock_in',
+    item: it, unit: it.packs[m.unit] ? m.unit : it.base_unit,
+    confidence: 100, sure: true, candidates: []});
+  render();
+}
+
+function askQty(id){
+  const v = prompt(t().qtyPrompt, props.find(p => p.id === id).qty);
+  if(v !== null && !isNaN(parseFloat(v))) edit(id, {qty: parseFloat(v)});
+}
+
+function addNew(id){
+  const m = props.find(p => p.id === id);
+  sheet(`<h3>${t().addNew}</h3>
+    <input class="search" id="nname" value="${m.heard}">
+    <div class="chips" id="nunit">${['kg','pc','litre'].map((u,i) =>
+      `<button class="${i?'':'on'}" onclick="pickUnit(this)">${u}</button>`).join('')}</div>
+    <button class="btn go wide" onclick="saveNew(${id})">${t().ok}</button>`);
+}
+const pickUnit = b => { [...b.parentNode.children].forEach(x => x.className = ''); b.className = 'on'; };
+
+async function saveNew(id){
+  const m = props.find(p => p.id === id);
+  const name = document.getElementById('nname').value.trim();
+  if(!name) return;
+  const unit = document.querySelector('#nunit .on').textContent;
+  const it = await api('/items', {name, base_unit: unit, heard: m.heard});
+  closeSheet();
+  await load();
+  Object.assign(m, {action: m.direction === 'out' ? 'stock_out' : 'stock_in',
+    item: {id: it.id, name: it.name, name_hi: it.name, name_te: it.name,
+           base_unit: it.base_unit, packs: {}, stock: 0},
+    unit: it.base_unit, confidence: 100, sure: true, candidates: []});
+  render();
 }
 
 async function detail(id){
