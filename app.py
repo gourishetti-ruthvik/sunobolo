@@ -21,6 +21,8 @@ import json
 import os
 import secrets
 import sqlite3
+
+import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.responses import FileResponse, PlainTextResponse
 
@@ -31,14 +33,19 @@ DB = os.environ.get("DB_PATH", "sunobolo.db")
 # restart just signs everyone out. Set SECRET_KEY in the environment to keep
 # sessions across restarts, and before ever running more than one instance.
 SECRET = os.environ.get("SECRET_KEY") or secrets.token_hex(16)
+# Public value - it is meant to be visible in the page. Sign-in with Google is
+# simply hidden when this is unset, so the app runs fine without it.
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS shops (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   shop_name  TEXT NOT NULL,
   owner_name TEXT NOT NULL,
-  phone      TEXT NOT NULL UNIQUE,     -- the login id: digits, nothing to spell
-  pin_hash   TEXT NOT NULL,            -- salt$pbkdf2, never the PIN itself
+  phone      TEXT UNIQUE,              -- phone+PIN accounts only (SQLite allows many NULLs)
+  pin_hash   TEXT,                     -- salt$pbkdf2, never the PIN itself
+  email      TEXT UNIQUE,              -- Google accounts only
+  google_sub TEXT UNIQUE,              -- Google's stable user id, safer than email
   lang       TEXT DEFAULT 'hi',
   created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
@@ -111,6 +118,13 @@ def setup():
         cols = [c["name"] for c in con.execute("PRAGMA table_info(items)")]
         if "shop_id" not in cols:
             con.executescript("DROP TABLE IF EXISTS txns; DROP TABLE IF EXISTS items;")
+    if con.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='shops'").fetchone():
+        cols = [c["name"] for c in con.execute("PRAGMA table_info(shops)")]
+        if "google_sub" not in cols:
+            # phone changed from NOT NULL to nullable, which SQLite cannot ALTER.
+            # Only demo accounts exist at this point, so rebuild rather than guess.
+            con.executescript("DROP TABLE IF EXISTS txns; DROP TABLE IF EXISTS items;"
+                              "DROP TABLE IF EXISTS shops;")
     con.executescript(SCHEMA)
     con.commit()
     con.close()
@@ -131,6 +145,8 @@ def hash_pin(pin, salt=None):
 
 
 def check_pin(pin, stored):
+    if not stored:                       # Google accounts have no PIN to check
+        return False
     try:
         salt, _ = stored.split("$", 1)
     except ValueError:
@@ -156,6 +172,22 @@ def current_shop(authorization: str = Header(None)) -> int:
     except (ValueError, AttributeError):
         pass
     raise HTTPException(401, "please sign in again")
+
+
+def seed_shop(con, shop_id):
+    """Give a brand new shop the starter catalogue so it is useful immediately."""
+    for n, hi, te, bu, p, r, t, pr, a, opening in SEED:
+        it = con.execute(
+            "INSERT INTO items (shop_id,name,name_hi,name_te,base_unit,packs,"
+            "reorder_level,target_level,last_price,aliases) VALUES (?,?,?,?,?,?,?,?,?,?)",
+            (shop_id, n, hi, te, bu, json.dumps(p), r, t, pr, json.dumps(a)))
+        # Opening stock is itself a ledger row - there is no other way to have
+        # stock, which is what keeps every number traceable.
+        if opening:
+            con.execute(
+                "INSERT INTO txns (shop_id,item_id,qty,unit,qty_base,transcript,source)"
+                " VALUES (?,?,?,?,?,'opening stock','seed')",
+                (shop_id, it.lastrowid, opening, bu, opening))
 
 
 def valid_pin(pin):
@@ -186,18 +218,7 @@ def register(body: dict):
         (shop_name, owner, phone, hash_pin(pin), body.get("lang") or "hi"))
     shop_id = cur.lastrowid
 
-    for n, hi, te, bu, p, r, t, pr, a, opening in SEED:
-        it = con.execute(
-            "INSERT INTO items (shop_id,name,name_hi,name_te,base_unit,packs,"
-            "reorder_level,target_level,last_price,aliases) VALUES (?,?,?,?,?,?,?,?,?,?)",
-            (shop_id, n, hi, te, bu, json.dumps(p), r, t, pr, json.dumps(a)))
-        # Opening stock is itself a ledger row - there is no other way to have
-        # stock, which is what keeps every number traceable.
-        if opening:
-            con.execute(
-                "INSERT INTO txns (shop_id,item_id,qty,unit,qty_base,transcript,source)"
-                " VALUES (?,?,?,?,?,'opening stock','seed')",
-                (shop_id, it.lastrowid, opening, bu, opening))
+    seed_shop(con, shop_id)
     con.commit()
     con.close()
     return {"token": make_token(shop_id), "shop_name": shop_name,
@@ -227,6 +248,92 @@ def me(shop: int = Depends(current_shop)):
     if not row:
         raise HTTPException(401, "please sign in again")
     return dict(row)
+
+
+@app.get("/config")
+def config():
+    """What the frontend needs to know before anyone signs in. The client id is
+    a public value; the Google button is simply hidden when it is not set."""
+    return {"google_client_id": GOOGLE_CLIENT_ID}
+
+
+@app.post("/auth/google")
+def auth_google(body: dict):
+    """Sign in (or sign up) with a Google account.
+
+    The browser hands us an ID token. We do NOT trust it - we ask Google to
+    verify it, and then check that the token was issued for OUR app. Without
+    that `aud` check anyone could sign in here using a token minted for some
+    other site, which is the classic way this integration is got wrong.
+    """
+    if not GOOGLE_CLIENT_ID:
+        raise HTTPException(503, "Google sign-in is not set up on this server")
+    credential = (body.get("credential") or "").strip()
+    if not credential:
+        raise HTTPException(400, "missing Google credential")
+
+    try:
+        r = httpx.get("https://oauth2.googleapis.com/tokeninfo",
+                      params={"id_token": credential}, timeout=10)
+    except httpx.HTTPError:
+        raise HTTPException(503, "could not reach Google, try the PIN instead")
+    if r.status_code != 200:
+        raise HTTPException(401, "Google sign-in failed")
+    info = r.json()
+
+    if info.get("aud") != GOOGLE_CLIENT_ID:
+        raise HTTPException(401, "Google sign-in failed")
+    if info.get("iss") not in ("accounts.google.com", "https://accounts.google.com"):
+        raise HTTPException(401, "Google sign-in failed")
+    if str(info.get("email_verified", "")).lower() not in ("true", "1"):
+        raise HTTPException(401, "this Google account has no verified email")
+
+    sub = info.get("sub")
+    email = (info.get("email") or "").lower()
+    name = info.get("given_name") or info.get("name") or email.split("@")[0]
+    if not sub:
+        raise HTTPException(401, "Google sign-in failed")
+
+    con = db()
+    row = con.execute("SELECT * FROM shops WHERE google_sub=?", (sub,)).fetchone()
+    if not row and email:
+        # Someone who registered with a phone, now signing in with Google on the
+        # same verified email: link the accounts rather than making a second shop.
+        row = con.execute("SELECT * FROM shops WHERE email=?", (email,)).fetchone()
+        if row:
+            con.execute("UPDATE shops SET google_sub=? WHERE id=?", (sub, row["id"]))
+            con.commit()
+
+    if row:
+        con.close()
+        return {"token": make_token(row["id"]), "shop_name": row["shop_name"],
+                "owner_name": row["owner_name"], "lang": row["lang"], "needs_name": False}
+
+    # New account. Google gives us a person, not a shop, so the shop still needs
+    # a name - the frontend asks for it as a single follow-up step.
+    cur = con.execute(
+        "INSERT INTO shops (shop_name,owner_name,email,google_sub,lang) VALUES (?,?,?,?,?)",
+        (f"{name}", name, email or None, sub, body.get("lang") or "hi"))
+    shop_id = cur.lastrowid
+    seed_shop(con, shop_id)
+    con.commit()
+    con.close()
+    return {"token": make_token(shop_id), "shop_name": name, "owner_name": name,
+            "lang": body.get("lang") or "hi", "needs_name": True}
+
+
+@app.post("/shop/name")
+def rename_shop(body: dict, shop: int = Depends(current_shop)):
+    """Used right after a Google sign-up, and any time the owner wants to
+    rename the shop."""
+    name = (body.get("shop_name") or "").strip()
+    if not name:
+        raise HTTPException(400, "shop name is required")
+    con = db()
+    con.execute("UPDATE shops SET shop_name=? WHERE id=?", (name[:60], shop))
+    con.commit()
+    con.close()
+    return {"shop_name": name[:60]}
 
 
 # ── stock ────────────────────────────────────────────────────────────────────

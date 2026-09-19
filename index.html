@@ -50,12 +50,24 @@ input.search{width:100%;padding:13px 15px;border-radius:var(--r);border:1px soli
 .pill.low{background:#ffedd5;color:#9a3412}.pill.out{background:#fee2e2;color:#991b1b}
 .sugg{text-align:right;font-size:12px;color:var(--mut)}.sugg b{display:block;font-size:18px;color:var(--brand)}
 
+/* language toggle floats over the gradient, top-left, on every auth screen */
+.atop{position:absolute;top:calc(14px + env(safe-area-inset-top));left:14px;right:14px;
+  display:flex;justify-content:flex-start;z-index:2}
+.atop .lang-toggle{display:flex;gap:3px;background:rgba(255,255,255,.16);
+  backdrop-filter:blur(6px);padding:4px;border-radius:99px}
+.atop .lang-toggle button{padding:8px 13px;border-radius:99px;color:#fff;font-size:13px;opacity:.8}
+.atop .lang-toggle button.on{background:#fff;color:var(--brand);font-weight:700;opacity:1}
+.orline{display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--mut);font-size:13px}
+.orline::before,.orline::after{content:"";flex:1;height:1px;background:var(--line)}
+#gbtn{display:flex;justify-content:center;min-height:44px}
+.ghint{font-size:12px;color:var(--mut);text-align:center;margin-top:10px;line-height:1.5}
+
 /* ── sign in / register ─────────────────────────────────────────────── */
 body.out .wrap, body.out nav{display:none}
 #auth{display:none}
 body.out #auth{display:block;position:fixed;inset:0;overflow:auto;z-index:40;
   background:linear-gradient(165deg,#0f766e 0%,#0b5b55 48%,#083f3b 100%)}
-.aw{max-width:420px;margin:0 auto;padding:36px 22px calc(28px + env(safe-area-inset-bottom))}
+.aw{max-width:420px;margin:0 auto;padding:76px 22px calc(28px + env(safe-area-inset-bottom))}
 .brand{text-align:center;color:#fff;margin-bottom:26px}
 .brand h1{margin:14px 0 4px;font-size:31px;letter-spacing:-.6px;font-weight:700}
 .brand p{margin:0;font-size:14px;opacity:.72}
@@ -158,6 +170,7 @@ nav>button.mic{flex:0 0 64px;width:64px;height:64px;border-radius:50%;background
   <button class="mic" onclick="micEntry()">🎤</button>
   <button id="tabAlerts" onclick="go('alerts')"><span style="font-size:20px">🔔</span><span id="lblAlerts"></span><i class="dot" id="alertDot" hidden></i></button>
 </nav>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <div id="auth"></div>
 <div id="sheet"></div>
 
@@ -173,7 +186,7 @@ const T = {
       learned:n=>`अब से "${n}" याद रहेगा`,
       added:(q,u,n,t,b)=>`${q} ${u} ${n} जोड़ा गया। अब स्टॉक ${t} ${b} है।`,
       removed:(q,u,n,t,b)=>`${q} ${u} ${n} निकाला गया। अब स्टॉक ${t} ${b} है।`,
-      answer:(n,t,b)=>`${n} ${t} ${b} बचा है।`, lowMsg:c=>`${c} सामान कम हैं`, tagline:'दुकान की बात सुनकर स्टॉक',signIn:'दाखिल हों',newAcc:'नया खाता',phone:'मोबाइल नंबर',pin:'4 अंक का पिन',pin2:'पिन दोबारा',shopN:'दुकान का नाम',ownerN:'आपका नाम',enter:'अंदर जाएं',create:'खाता बनाएं',logout:'बाहर जाएं',pinBad:'दोनों पिन अलग हैं',welcome:n=>`नमस्ते, ${n}`,chooseLang:'भाषा चुनें', mismatch:'गिनती मिलती नहीं'},
+      answer:(n,t,b)=>`${n} ${t} ${b} बचा है।`, lowMsg:c=>`${c} सामान कम हैं`, tagline:'दुकान की बात सुनकर स्टॉक',signIn:'दाखिल हों',newAcc:'नया खाता',phone:'मोबाइल नंबर',pin:'4 अंक का पिन',pin2:'पिन दोबारा',shopN:'दुकान का नाम',ownerN:'आपका नाम',enter:'अंदर जाएं',create:'खाता बनाएं',logout:'बाहर जाएं',pinBad:'दोनों पिन अलग हैं',welcome:n=>`नमस्ते, ${n}`,chooseLang:'भाषा चुनें',orLine:'या',nameShop:'दुकान का नाम रखिए',save:'सेव करें', mismatch:'गिनती मिलती नहीं'},
   te:{stock:'నిల్వ',alerts:'హెచ్చరికలు',counter:'కౌంటర్ మోడ్',counterOff:'దుకాణం మాట వింటూ నిల్వ రాయండి',
       counterOn:'వింటున్నాం…',pending:'చూడండి',acceptAll:'అన్నీ సరే',search:'వస్తువు వెతకండి',
       low:'తక్కువ',out:'అయిపోయింది',ok:'సరే',yes:'సరే',no:'వద్దు',order:'ఆర్డర్',history:'గత నమోదులు',
@@ -183,7 +196,7 @@ const T = {
       learned:n=>`ఇప్పటి నుండి "${n}" గుర్తుంటుంది`,
       added:(q,u,n,t,b)=>`${q} ${u} ${n} చేర్చాము. ఇప్పుడు నిల్వ ${t} ${b}.`,
       removed:(q,u,n,t,b)=>`${q} ${u} ${n} తీసేశాము. ఇప్పుడు నిల్వ ${t} ${b}.`,
-      answer:(n,t,b)=>`${n} ${t} ${b} ఉంది.`, lowMsg:c=>`${c} వస్తువులు తక్కువ`, tagline:'దుకాణం మాట వింటూ నిల్వ',signIn:'లాగిన్',newAcc:'కొత్త ఖాతా',phone:'మొబైల్ నంబర్',pin:'4 అంకెల పిన్',pin2:'పిన్ మళ్ళీ',shopN:'దుకాణం పేరు',ownerN:'మీ పేరు',enter:'లోపలికి',create:'ఖాతా సృష్టించు',logout:'బయటకు',pinBad:'రెండు పిన్‌లు వేరు',welcome:n=>`నమస్తే, ${n}`,chooseLang:'భాష ఎంచుకోండి', mismatch:'లెక్క సరిపోలేదు'},
+      answer:(n,t,b)=>`${n} ${t} ${b} ఉంది.`, lowMsg:c=>`${c} వస్తువులు తక్కువ`, tagline:'దుకాణం మాట వింటూ నిల్వ',signIn:'లాగిన్',newAcc:'కొత్త ఖాతా',phone:'మొబైల్ నంబర్',pin:'4 అంకెల పిన్',pin2:'పిన్ మళ్ళీ',shopN:'దుకాణం పేరు',ownerN:'మీ పేరు',enter:'లోపలికి',create:'ఖాతా సృష్టించు',logout:'బయటకు',pinBad:'రెండు పిన్‌లు వేరు',welcome:n=>`నమస్తే, ${n}`,chooseLang:'భాష ఎంచుకోండి',orLine:'లేదా',nameShop:'దుకాణానికి పేరు పెట్టండి',save:'సేవ్', mismatch:'లెక్క సరిపోలేదు'},
   en:{stock:'Stock',alerts:'Alerts',counter:'Counter Mode',counterOff:'Log stock by listening to the shop',
       counterOn:'Listening…',pending:'Please check',acceptAll:'All correct',search:'Find item',
       low:'Low',out:'Out',ok:'OK',yes:'Correct',no:'No',order:'Order',history:'Recent entries',
@@ -193,7 +206,7 @@ const T = {
       learned:n=>`Will remember "${n}" from now on`,
       added:(q,u,n,t,b)=>`Added ${q} ${u} ${n}. Stock is now ${t} ${b}.`,
       removed:(q,u,n,t,b)=>`Removed ${q} ${u} ${n}. Stock is now ${t} ${b}.`,
-      answer:(n,t,b)=>`You have ${t} ${b} of ${n}.`, lowMsg:c=>`${c} items running low`, tagline:'Stock, by listening to your shop',signIn:'Sign in',newAcc:'New account',phone:'Mobile number',pin:'4-digit PIN',pin2:'PIN again',shopN:'Shop name',ownerN:'Your name',enter:'Enter',create:'Create account',logout:'Sign out',pinBad:'The two PINs do not match',welcome:n=>`Hello, ${n}`,chooseLang:'Choose language', mismatch:'Count disagrees'},
+      answer:(n,t,b)=>`You have ${t} ${b} of ${n}.`, lowMsg:c=>`${c} items running low`, tagline:'Stock, by listening to your shop',signIn:'Sign in',newAcc:'New account',phone:'Mobile number',pin:'4-digit PIN',pin2:'PIN again',shopN:'Shop name',ownerN:'Your name',enter:'Enter',create:'Create account',logout:'Sign out',pinBad:'The two PINs do not match',welcome:n=>`Hello, ${n}`,chooseLang:'Choose language',orLine:'or',nameShop:'Name your shop',save:'Save', mismatch:'Count disagrees'},
 };
 const LOCALE = {hi:'hi-IN', te:'te-IN', en:'en-IN'};
 
@@ -546,7 +559,11 @@ function renderAuth(){
   const up = authMode === 'up';
   const f = (id, label, extra='') =>
     `<div class="fld"><label for="${id}">${label}</label><input id="${id}" ${extra}></div>`;
-  document.getElementById('auth').innerHTML = `<div class="aw">
+  document.getElementById('auth').innerHTML = `
+    <div class="atop"><div class="lang-toggle">${['hi','te','en'].map(l =>
+      `<button class="${l===lang?'on':''}" onclick="setLang('${l}');renderAuth()">${
+        ({hi:'हिंदी',te:'తెలుగు',en:'EN'})[l]}</button>`).join('')}</div></div>
+    <div class="aw">
     <div class="brand">${MARK}<h1>SunoBolo</h1><p>${t().tagline}</p></div>
     <div class="apick">
       <button class="${up?'':'on'}" onclick="setAuthMode('in')">${t().signIn}</button>
@@ -559,12 +576,53 @@ function renderAuth(){
       ${f('f_phone', t().phone, 'type="tel" inputmode="numeric" maxlength="10" autocomplete="tel"')}
       ${f('f_pin', t().pin, 'type="password" inputmode="numeric" maxlength="4" class="pin"')}
       ${up ? f('f_pin2', t().pin2, 'type="password" inputmode="numeric" maxlength="4" class="pin"') : ''}
-      ${up ? `<label style="font-size:13px;font-weight:600;color:var(--mut)">${t().chooseLang}</label>
-        <div class="lrow">${['hi','te','en'].map(l =>
-          `<button class="${l===lang?'on':''}" onclick="setLang('${l}');renderAuth()">${
-            ({hi:'हिंदी',te:'తెలుగు',en:'English'})[l]}</button>`).join('')}</div>` : ''}
       <button class="big-btn" onclick="submitAuth()">${up ? t().create : t().enter}</button>
+      ${googleClientId ? `<div class="orline">${t().orLine}</div><div id="gbtn"></div>` : ''}
     </div></div>`;
+  if(googleClientId) drawGoogleButton();
+}
+
+/* Google Identity Services renders its own button - we only give it a slot.
+   The library loads async, so this retries once rather than silently no-op. */
+function drawGoogleButton(){
+  const slot = document.getElementById('gbtn');
+  if(!slot) return;
+  if(!window.google?.accounts?.id) return void setTimeout(drawGoogleButton, 400);
+  google.accounts.id.initialize({client_id: googleClientId, callback: onGoogleCredential});
+  google.accounts.id.renderButton(slot, {
+    theme:'outline', size:'large', shape:'pill', width: 280,
+    text: authMode === 'up' ? 'signup_with' : 'signin_with',
+    locale: lang === 'hi' ? 'hi' : lang === 'te' ? 'te' : 'en',
+  });
+}
+
+async function onGoogleCredential(resp){
+  try{
+    const r = await api('/auth/google', {credential: resp.credential, lang});
+    signedIn(r);
+    // Google tells us a person, not a shop, so a brand new account still
+    // needs a shop name. One field, asked once.
+    if(r.needs_name) askShopName();
+  }catch(e){
+    authErr = e.message;
+    renderAuth();
+  }
+}
+
+function askShopName(){
+  sheet(`<h3>${t().nameShop}</h3>
+    <input class="search" id="s_name" value="${shopName}" autofocus>
+    <button class="btn go wide" onclick="saveShopName()">${t().save}</button>`);
+}
+
+async function saveShopName(){
+  const v = document.getElementById('s_name').value.trim();
+  if(!v) return;
+  const r = await api('/shop/name', {shop_name: v});
+  shopName = r.shop_name;
+  localStorage.setItem('sb_shop', shopName);
+  closeSheet();
+  render();
 }
 
 const setAuthMode = m => { authMode = m; authErr = ''; renderAuth(); };
@@ -586,8 +644,17 @@ async function submitAuth(){
 }
 
 // ─── start ───
-if(token){ document.body.classList.remove('out'); load(); }
-else { document.body.classList.add('out'); renderAuth(); }
+let googleClientId = '';
+
+(async function boot(){
+  if(token){ document.body.classList.remove('out'); load(); return; }
+  document.body.classList.add('out');
+  renderAuth();                       // draw immediately, do not wait on the network
+  try{
+    googleClientId = (await api('/config')).google_client_id || '';
+    if(googleClientId) renderAuth();  // redraw once we know the button belongs there
+  }catch{}
+})();
 </script>
 </body>
 </html>

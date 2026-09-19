@@ -68,7 +68,21 @@ def run():
     con.close()
     assert "1234" not in stored and len(stored) > 60, stored
 
-    print("all 16 auth checks passed")
+    # Google sign-in is optional. With no client id configured the button is
+    # hidden and the endpoint refuses rather than half-working.
+    assert c.get("/config").json()["google_client_id"] == ""
+    assert c.post("/auth/google", json={"credential": "anything"}).status_code == 503
+
+    # renaming a shop (used straight after a Google sign-up) is scoped to the
+    # caller's own shop and cannot be blanked
+    assert c.post("/shop/name", headers=auth(a["token"]),
+                  json={"shop_name": "Ramesh Super Store"}).status_code == 200
+    assert c.get("/me", headers=auth(a["token"])).json()["shop_name"] == "Ramesh Super Store"
+    assert c.get("/me", headers=auth(b["token"])).json()["shop_name"] == "Lakshmi Provisions"
+    assert c.post("/shop/name", headers=auth(a["token"]), json={"shop_name": "  "}).status_code == 400
+    assert c.post("/shop/name", json={"shop_name": "X"}).status_code == 401
+
+    print("all 22 auth checks passed")
 
 
 if __name__ == "__main__":
